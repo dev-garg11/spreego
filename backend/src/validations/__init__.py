@@ -33,6 +33,15 @@ from src.validations.engagement_schemas import (
     SaveResponse,
     UnsaveResponse,
 )
+from src.validations.buzzer_schemas import (
+    BuzzerCampaignResponse,
+    CreateBuzzerRequest,
+)
+from src.validations.feed_schemas import (
+    FeedCreatorInfo,
+    FeedEngagementMetrics,
+    FeedSpreeResponse,
+)
 
 __all__ = [
     "BaseSchema",
@@ -62,5 +71,10 @@ __all__ = [
     "ShareResponse",
     "SaveResponse",
     "UnsaveResponse",
+    "CreateBuzzerRequest",
+    "BuzzerCampaignResponse",
+    "FeedCreatorInfo",
+    "FeedEngagementMetrics",
+    "FeedSpreeResponse",
 ]
 

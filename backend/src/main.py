@@ -6,6 +6,8 @@ from src.config.settings import settings
 import src.models  # Ensures all SQLAlchemy models are registered on Base.metadata
 from src.routes.auth_routes import router as auth_router
 from src.routes.user_routes import router as user_router
+from src.routes.feed_routes import router as feed_router
+from src.routes.buzzer_routes import router as buzzer_router
 from src.routes.spree_routes import router as spree_router
 from src.routes.engagement_routes import router as engagement_router
 
@@ -41,6 +43,8 @@ app.add_middleware(
 # Register routers
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(feed_router)
+app.include_router(buzzer_router)
 app.include_router(spree_router)
 app.include_router(engagement_router)
 

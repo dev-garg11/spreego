@@ -12,6 +12,8 @@ from src.models.engagement import (
     SpreeShare,
 )
 
+from src.models.buzzer import BuzzerCampaign, BuzzerStatus
+
 __all__ = [
     "User",
     "Profile",
@@ -26,5 +28,7 @@ __all__ = [
     "SpreeComment",
     "SpreeSave",
     "SpreeShare",
+    "BuzzerCampaign",
+    "BuzzerStatus",
 ]
 

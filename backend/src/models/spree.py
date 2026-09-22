@@ -65,6 +65,14 @@ class Spree(Base):
     comments = relationship("SpreeComment", back_populates="spree", cascade="all, delete-orphan", lazy="select")
     saves = relationship("SpreeSave", back_populates="spree", cascade="all, delete-orphan", lazy="select")
     shares = relationship("SpreeShare", back_populates="spree", cascade="all, delete-orphan", lazy="select")
+    buzzer_campaigns = relationship("BuzzerCampaign", back_populates="spree", cascade="all, delete-orphan", lazy="select")
+
+    @property
+    def active_buzzer_campaign(self):
+        for campaign in self.buzzer_campaigns:
+            if campaign.is_active:
+                return campaign
+        return None
 
     def __repr__(self) -> str:
         return f"<Spree(id='{self.id}', type='{self.type}', title='{self.title}', creator_id='{self.creator_id}')>"
