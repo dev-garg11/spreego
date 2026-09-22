@@ -38,6 +38,12 @@ class User(Base):
         cascade="all, delete-orphan",
         lazy="select",
     )
+    sprees = relationship(
+        "Spree",
+        back_populates="creator",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
 
     def __repr__(self) -> str:
         return f"<User(id='{self.id}', phone='{self.phone_number}', email='{self.email}')>"

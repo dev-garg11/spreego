@@ -71,3 +71,13 @@ def get_current_user(
         )
 
     return user
+
+
+def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """Dependency to extract current authenticated user if Bearer token is provided, or None."""
+    if not credentials or not credentials.credentials or not credentials.credentials.strip():
+        return None
+    return get_current_user(credentials=credentials, db=db)

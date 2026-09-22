@@ -15,6 +15,11 @@ from src.validations.user_schemas import (
     UpdateProfileRequest,
     UserProfileResponse,
 )
+from src.validations.spree_schemas import (
+    CreateSpreeRequest,
+    UpdateSpreeRequest,
+    SpreeResponse,
+)
 
 __all__ = [
     "BaseSchema",
@@ -30,4 +35,7 @@ __all__ = [
     "FollowUserItem",
     "UpdateProfileRequest",
     "UserProfileResponse",
+    "CreateSpreeRequest",
+    "UpdateSpreeRequest",
+    "SpreeResponse",
 ]

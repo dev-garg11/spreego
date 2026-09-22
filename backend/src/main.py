@@ -6,6 +6,7 @@ from src.config.settings import settings
 import src.models  # Ensures all SQLAlchemy models are registered on Base.metadata
 from src.routes.auth_routes import router as auth_router
 from src.routes.user_routes import router as user_router
+from src.routes.spree_routes import router as spree_router
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ app.add_middleware(
 # Register routers
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(spree_router)
 
 
 @app.get("/health", tags=["Health"])
