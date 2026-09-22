@@ -60,6 +60,11 @@ class Spree(Base):
 
     # Relationships
     creator = relationship("User", back_populates="sprees")
+    views = relationship("SpreeView", back_populates="spree", cascade="all, delete-orphan", lazy="select")
+    claps = relationship("SpreeClap", back_populates="spree", cascade="all, delete-orphan", lazy="select")
+    comments = relationship("SpreeComment", back_populates="spree", cascade="all, delete-orphan", lazy="select")
+    saves = relationship("SpreeSave", back_populates="spree", cascade="all, delete-orphan", lazy="select")
+    shares = relationship("SpreeShare", back_populates="spree", cascade="all, delete-orphan", lazy="select")
 
     def __repr__(self) -> str:
         return f"<Spree(id='{self.id}', type='{self.type}', title='{self.title}', creator_id='{self.creator_id}')>"

@@ -51,3 +51,4 @@ htmlcov/
 # Temporary & Multi-agent internal artifacts
 .agents/
 ORIGINAL_REQUEST.md
+

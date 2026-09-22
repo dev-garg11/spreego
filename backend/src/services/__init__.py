@@ -3,6 +3,7 @@ from src.services.token_service import TokenService
 from src.services.auth_service import AuthService
 from src.services.user_service import UserService
 from src.services.spree_service import SpreeService, AuthenticationRequiredError
+from src.services.engagement_service import EngagementService
 
 __all__ = [
     "OTPService",
@@ -11,4 +12,6 @@ __all__ = [
     "UserService",
     "SpreeService",
     "AuthenticationRequiredError",
+    "EngagementService",
 ]
+

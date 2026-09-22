@@ -20,6 +20,19 @@ from src.validations.spree_schemas import (
     UpdateSpreeRequest,
     SpreeResponse,
 )
+from src.validations.engagement_schemas import (
+    RecordViewRequest,
+    ViewResponse,
+    ClapResponse,
+    UnclapResponse,
+    CreateCommentRequest,
+    CommentResponse,
+    CommentUserProfile,
+    RecordShareRequest,
+    ShareResponse,
+    SaveResponse,
+    UnsaveResponse,
+)
 
 __all__ = [
     "BaseSchema",
@@ -38,4 +51,16 @@ __all__ = [
     "CreateSpreeRequest",
     "UpdateSpreeRequest",
     "SpreeResponse",
+    "RecordViewRequest",
+    "ViewResponse",
+    "ClapResponse",
+    "UnclapResponse",
+    "CreateCommentRequest",
+    "CommentResponse",
+    "CommentUserProfile",
+    "RecordShareRequest",
+    "ShareResponse",
+    "SaveResponse",
+    "UnsaveResponse",
 ]
+

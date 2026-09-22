@@ -4,6 +4,13 @@ from src.models.user_session import UserSession
 from src.models.otp import OTPCode
 from src.models.follow import Follow
 from src.models.spree import Spree, SpreeType, SpreeVisibility
+from src.models.engagement import (
+    SpreeView,
+    SpreeClap,
+    SpreeComment,
+    SpreeSave,
+    SpreeShare,
+)
 
 __all__ = [
     "User",
@@ -14,4 +21,10 @@ __all__ = [
     "Spree",
     "SpreeType",
     "SpreeVisibility",
+    "SpreeView",
+    "SpreeClap",
+    "SpreeComment",
+    "SpreeSave",
+    "SpreeShare",
 ]
+

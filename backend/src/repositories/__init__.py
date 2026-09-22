@@ -5,6 +5,7 @@ from src.repositories.session_repository import SessionRepository
 from src.repositories.otp_repository import OTPRepository
 from src.repositories.follow_repository import FollowRepository
 from src.repositories.spree_repository import SpreeRepository
+from src.repositories.engagement_repository import EngagementRepository
 
 __all__ = [
     "BaseRepository",
@@ -14,4 +15,6 @@ __all__ = [
     "OTPRepository",
     "FollowRepository",
     "SpreeRepository",
+    "EngagementRepository",
 ]
+

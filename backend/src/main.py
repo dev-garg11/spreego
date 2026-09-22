@@ -7,6 +7,7 @@ import src.models  # Ensures all SQLAlchemy models are registered on Base.metada
 from src.routes.auth_routes import router as auth_router
 from src.routes.user_routes import router as user_router
 from src.routes.spree_routes import router as spree_router
+from src.routes.engagement_routes import router as engagement_router
 
 
 @asynccontextmanager
@@ -41,6 +42,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(spree_router)
+app.include_router(engagement_router)
+
 
 
 @app.get("/health", tags=["Health"])
