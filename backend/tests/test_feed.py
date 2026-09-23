@@ -1558,6 +1558,7 @@ def test_postgres_partial_unique_index_enforcement():
         pg_engine = create_engine(pg_url)
         with pg_engine.connect() as conn:
             pass
+        Base.metadata.create_all(bind=pg_engine)
     except Exception:
         pytest.skip("Not connected to a live PostgreSQL database")
 

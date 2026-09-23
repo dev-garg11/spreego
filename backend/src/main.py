@@ -10,6 +10,7 @@ from src.routes.feed_routes import router as feed_router
 from src.routes.buzzer_routes import router as buzzer_router
 from src.routes.spree_routes import router as spree_router
 from src.routes.engagement_routes import router as engagement_router
+from src.routes.open_routes import router as open_router
 
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ app.include_router(feed_router)
 app.include_router(buzzer_router)
 app.include_router(spree_router)
 app.include_router(engagement_router)
+app.include_router(open_router)
 
 
 
