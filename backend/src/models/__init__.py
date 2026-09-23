@@ -27,6 +27,13 @@ from src.models.membership import (
     Subscription,
     SubscriptionStatus,
 )
+from src.models.commerce import (
+    Product,
+    ProductType,
+    Order,
+    OrderItem,
+    OrderStatus,
+)
 
 __all__ = [
     "User",
@@ -54,5 +61,10 @@ __all__ = [
     "MembershipTierType",
     "Subscription",
     "SubscriptionStatus",
+    "Product",
+    "ProductType",
+    "Order",
+    "OrderItem",
+    "OrderStatus",
 ]
 

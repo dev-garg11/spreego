@@ -6,6 +6,8 @@ from src.routes.spree_routes import router as spree_router
 from src.routes.engagement_routes import router as engagement_router
 from src.routes.open_routes import router as open_router
 from src.routes.membership_routes import router as membership_router
+from src.routes.product_routes import router as product_router
+from src.routes.order_routes import router as order_router
 
 __all__ = [
     "auth_router",
@@ -16,5 +18,7 @@ __all__ = [
     "engagement_router",
     "open_router",
     "membership_router",
+    "product_router",
+    "order_router",
 ]
 

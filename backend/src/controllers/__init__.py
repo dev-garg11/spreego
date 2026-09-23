@@ -6,6 +6,8 @@ from src.controllers.buzzer_controller import BuzzerController
 from src.controllers.feed_controller import FeedController
 from src.controllers.open_controller import OpenController
 from src.controllers.membership_controller import MembershipController
+from src.controllers.product_controller import ProductController
+from src.controllers.order_controller import OrderController
 
 __all__ = [
     "AuthController",
@@ -16,6 +18,8 @@ __all__ = [
     "FeedController",
     "OpenController",
     "MembershipController",
+    "ProductController",
+    "OrderController",
 ]
 
 

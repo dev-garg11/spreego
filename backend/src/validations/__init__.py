@@ -58,6 +58,16 @@ from src.validations.membership_schemas import (
     MembershipPlanResponse,
     SubscriptionResponse,
 )
+from src.validations.commerce_schemas import (
+    CreateProductRequest,
+    UpdateProductRequest,
+    ProductResponse,
+    OrderItemCreate,
+    CreateOrderRequest,
+    OrderItemResponse,
+    OrderResponse,
+    UpdateOrderStatusRequest,
+)
 
 __all__ = [
     "BaseSchema",
@@ -104,6 +114,14 @@ __all__ = [
     "SubscribeMembershipRequest",
     "MembershipPlanResponse",
     "SubscriptionResponse",
+    "CreateProductRequest",
+    "UpdateProductRequest",
+    "ProductResponse",
+    "OrderItemCreate",
+    "CreateOrderRequest",
+    "OrderItemResponse",
+    "OrderResponse",
+    "UpdateOrderStatusRequest",
 ]
 
 

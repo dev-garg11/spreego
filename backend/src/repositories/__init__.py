@@ -12,6 +12,10 @@ from src.repositories.membership_repository import (
     MembershipPlanRepository,
     SubscriptionRepository,
 )
+from src.repositories.commerce_repository import (
+    ProductRepository,
+    OrderRepository,
+)
 
 __all__ = [
     "BaseRepository",
@@ -26,6 +30,8 @@ __all__ = [
     "OpenRepository",
     "MembershipPlanRepository",
     "SubscriptionRepository",
+    "ProductRepository",
+    "OrderRepository",
 ]
 
 
