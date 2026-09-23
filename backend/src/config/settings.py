@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-@dataclass(frozen=True)
+@dataclass
 class Settings:
     PROJECT_NAME: str = os.getenv("PROJECT_NAME", "SPREEGO Authentication API")
     VERSION: str = "1.0.0"
@@ -30,6 +30,9 @@ class Settings:
     OTP_EXPIRE_MINUTES: int = int(os.getenv("OTP_EXPIRE_MINUTES", "5"))
     OTP_LENGTH: int = int(os.getenv("OTP_LENGTH", "6"))
     MAX_OTP_ATTEMPTS: int = int(os.getenv("MAX_OTP_ATTEMPTS", "5"))
+
+    # Phase 10: Creator Memberships Feature Toggle
+    ENABLE_PAID_MEMBERSHIPS: bool = os.getenv("ENABLE_PAID_MEMBERSHIPS", "false").lower() in ("true", "1", "yes")
 
 
 settings = Settings()

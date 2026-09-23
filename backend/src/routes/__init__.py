@@ -4,6 +4,8 @@ from src.routes.feed_routes import router as feed_router
 from src.routes.buzzer_routes import router as buzzer_router
 from src.routes.spree_routes import router as spree_router
 from src.routes.engagement_routes import router as engagement_router
+from src.routes.open_routes import router as open_router
+from src.routes.membership_routes import router as membership_router
 
 __all__ = [
     "auth_router",
@@ -12,5 +14,7 @@ __all__ = [
     "buzzer_router",
     "spree_router",
     "engagement_router",
+    "open_router",
+    "membership_router",
 ]
 

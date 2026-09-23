@@ -7,6 +7,7 @@ from src.services.engagement_service import EngagementService
 from src.services.buzzer_service import BuzzerService
 from src.services.feed_ranking_service import FeedRankingService
 from src.services.open_service import OpenService
+from src.services.membership_service import MembershipService
 
 __all__ = [
     "OTPService",
@@ -19,6 +20,7 @@ __all__ = [
     "BuzzerService",
     "FeedRankingService",
     "OpenService",
+    "MembershipService",
 ]
 
 

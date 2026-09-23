@@ -5,6 +5,7 @@ from src.controllers.engagement_controller import EngagementController
 from src.controllers.buzzer_controller import BuzzerController
 from src.controllers.feed_controller import FeedController
 from src.controllers.open_controller import OpenController
+from src.controllers.membership_controller import MembershipController
 
 __all__ = [
     "AuthController",
@@ -14,6 +15,7 @@ __all__ = [
     "BuzzerController",
     "FeedController",
     "OpenController",
+    "MembershipController",
 ]
 
 

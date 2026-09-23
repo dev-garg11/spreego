@@ -21,6 +21,12 @@ from src.models.open import (
     OpenStatus,
     DEFAULT_SCORING_CONFIG,
 )
+from src.models.membership import (
+    MembershipPlan,
+    MembershipTierType,
+    Subscription,
+    SubscriptionStatus,
+)
 
 __all__ = [
     "User",
@@ -44,5 +50,9 @@ __all__ = [
     "OpenType",
     "OpenStatus",
     "DEFAULT_SCORING_CONFIG",
+    "MembershipPlan",
+    "MembershipTierType",
+    "Subscription",
+    "SubscriptionStatus",
 ]
 
