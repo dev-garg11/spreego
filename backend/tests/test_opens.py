@@ -925,7 +925,7 @@ def test_ranking_with_all_engagement_metrics(client: TestClient, db_session: Ses
     spree = create_test_spree(db_session, creator=user, title="All Metrics Spree")
     # 1 clap, 1 comment, 1 save, 1 share, 2 views (1 completed -> completion_rate 0.5)
     db_session.add(SpreeClap(spree_id=spree.id, user_id=viewer.id))
-    db_session.add(SpreeComment(spree_id=spree.id, user_id=viewer.id, content="Great video!"))
+    db_session.add(SpreeComment(spree_id=spree.id, user_id=viewer.id, text="Great video!"))
     db_session.add(SpreeSave(spree_id=spree.id, user_id=viewer.id))
     db_session.add(SpreeShare(spree_id=spree.id, user_id=viewer.id, platform="twitter"))
     db_session.add(SpreeView(spree_id=spree.id, user_id=viewer.id, watch_duration=30.0, completed=True))
