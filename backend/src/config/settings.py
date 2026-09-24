@@ -34,5 +34,12 @@ class Settings:
     # Phase 10: Creator Memberships Feature Toggle
     ENABLE_PAID_MEMBERSHIPS: bool = os.getenv("ENABLE_PAID_MEMBERSHIPS", "false").lower() in ("true", "1", "yes")
 
+    # Phase 3: Media Upload Infrastructure Configuration
+    STORAGE_PROVIDER: str = os.getenv("STORAGE_PROVIDER", "local")
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
+    BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
+    MAX_IMAGE_SIZE_BYTES: int = int(os.getenv("MAX_IMAGE_SIZE_BYTES", str(15 * 1024 * 1024)))  # 15 MB
+    MAX_VIDEO_SIZE_BYTES: int = int(os.getenv("MAX_VIDEO_SIZE_BYTES", str(250 * 1024 * 1024)))  # 250 MB
+
 
 settings = Settings()
