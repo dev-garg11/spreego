@@ -14,6 +14,7 @@ from src.routes.open_routes import router as open_router
 from src.routes.membership_routes import router as membership_router
 from src.routes.product_routes import router as product_router
 from src.routes.order_routes import router as order_router
+from src.routes.wallet_routes import router as wallet_router
 
 
 @asynccontextmanager
@@ -55,6 +56,7 @@ app.include_router(open_router)
 app.include_router(membership_router)
 app.include_router(product_router)
 app.include_router(order_router)
+app.include_router(wallet_router)
 
 
 

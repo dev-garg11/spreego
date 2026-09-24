@@ -34,6 +34,15 @@ from src.models.commerce import (
     OrderItem,
     OrderStatus,
 )
+from src.models.wallet import (
+    Wallet,
+    WalletTransaction,
+    Payout,
+    WalletStatus,
+    WalletTransactionType,
+    TransactionType,
+    PayoutStatus,
+)
 
 __all__ = [
     "User",
@@ -66,5 +75,13 @@ __all__ = [
     "Order",
     "OrderItem",
     "OrderStatus",
+    "Wallet",
+    "WalletTransaction",
+    "Payout",
+    "WalletStatus",
+    "WalletTransactionType",
+    "TransactionType",
+    "PayoutStatus",
 ]
+
 
