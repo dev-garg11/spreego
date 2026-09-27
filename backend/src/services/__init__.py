@@ -9,6 +9,8 @@ from src.services.feed_ranking_service import FeedRankingService
 from src.services.open_service import OpenService
 from src.services.membership_service import MembershipService
 from src.services.commerce_service import CommerceService
+from src.services.notification_service import NotificationService
+from src.services.moderation_service import ModerationService
 
 __all__ = [
     "OTPService",
@@ -23,6 +25,8 @@ __all__ = [
     "OpenService",
     "MembershipService",
     "CommerceService",
+    "NotificationService",
+    "ModerationService",
 ]
 
 

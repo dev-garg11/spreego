@@ -8,6 +8,9 @@ from src.routes.open_routes import router as open_router
 from src.routes.membership_routes import router as membership_router
 from src.routes.product_routes import router as product_router
 from src.routes.order_routes import router as order_router
+from src.routes.wallet_routes import router as wallet_router
+from src.routes.notification_routes import router as notification_router
+from src.routes.moderation_routes import router as moderation_router
 
 __all__ = [
     "auth_router",
@@ -20,5 +23,8 @@ __all__ = [
     "membership_router",
     "product_router",
     "order_router",
+    "wallet_router",
+    "notification_router",
+    "moderation_router",
 ]
 

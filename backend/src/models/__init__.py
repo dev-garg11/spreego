@@ -43,6 +43,18 @@ from src.models.wallet import (
     TransactionType,
     PayoutStatus,
 )
+from src.models.notification import (
+    Notification,
+    NotificationType,
+)
+from src.models.moderation import (
+    Report,
+    ReportEntityType,
+    ReportReason,
+    ReportStatus,
+    Block,
+    Mute,
+)
 
 __all__ = [
     "User",
@@ -82,6 +94,14 @@ __all__ = [
     "WalletTransactionType",
     "TransactionType",
     "PayoutStatus",
+    "Notification",
+    "NotificationType",
+    "Report",
+    "ReportEntityType",
+    "ReportReason",
+    "ReportStatus",
+    "Block",
+    "Mute",
 ]
 
 

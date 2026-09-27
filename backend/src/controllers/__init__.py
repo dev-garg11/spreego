@@ -8,6 +8,8 @@ from src.controllers.open_controller import OpenController
 from src.controllers.membership_controller import MembershipController
 from src.controllers.product_controller import ProductController
 from src.controllers.order_controller import OrderController
+from src.controllers.notification_controller import NotificationController
+from src.controllers.moderation_controller import ModerationController
 
 __all__ = [
     "AuthController",
@@ -20,6 +22,8 @@ __all__ = [
     "MembershipController",
     "ProductController",
     "OrderController",
+    "NotificationController",
+    "ModerationController",
 ]
 
 

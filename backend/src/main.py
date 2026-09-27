@@ -15,6 +15,8 @@ from src.routes.membership_routes import router as membership_router
 from src.routes.product_routes import router as product_router
 from src.routes.order_routes import router as order_router
 from src.routes.wallet_routes import router as wallet_router
+from src.routes.notification_routes import router as notification_router
+from src.routes.moderation_routes import router as moderation_router
 
 
 @asynccontextmanager
@@ -47,6 +49,8 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth_router)
+app.include_router(moderation_router)
+app.include_router(notification_router)
 app.include_router(user_router)
 app.include_router(feed_router)
 app.include_router(buzzer_router)

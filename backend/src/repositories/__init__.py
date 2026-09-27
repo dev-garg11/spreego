@@ -16,6 +16,8 @@ from src.repositories.commerce_repository import (
     ProductRepository,
     OrderRepository,
 )
+from src.repositories.notification_repository import NotificationRepository
+from src.repositories.moderation_repository import ModerationRepository
 
 __all__ = [
     "BaseRepository",
@@ -32,6 +34,8 @@ __all__ = [
     "SubscriptionRepository",
     "ProductRepository",
     "OrderRepository",
+    "NotificationRepository",
+    "ModerationRepository",
 ]
 
 
