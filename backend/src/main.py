@@ -17,6 +17,9 @@ from src.routes.order_routes import router as order_router
 from src.routes.wallet_routes import router as wallet_router
 from src.routes.notification_routes import router as notification_router
 from src.routes.moderation_routes import router as moderation_router
+from src.routes.upload_routes import router as upload_router
+from fastapi.staticfiles import StaticFiles
+import os
 
 
 @asynccontextmanager
@@ -61,6 +64,11 @@ app.include_router(membership_router)
 app.include_router(product_router)
 app.include_router(order_router)
 app.include_router(wallet_router)
+app.include_router(upload_router)
+
+# Mount local uploads directory for zero-cost static media serving
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount("/static/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 
 
