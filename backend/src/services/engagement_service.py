@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from src.models.engagement import SpreeShare, SpreeView, SpreeComment
 from src.repositories.engagement_repository import EngagementRepository
+from src.services.affinity_service import AffinityService
 from src.validations.engagement_schemas import (
     CommentResponse,
     CommentUserProfile,
@@ -15,6 +16,7 @@ class EngagementService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = EngagementRepository(db)
+        self.affinity_service = AffinityService(db)
 
     def record_view(
         self,
@@ -29,18 +31,31 @@ class EngagementService:
         watch_duration = payload.watch_duration if payload else 0.0
         completed = payload.completed if payload else False
 
-        return self.repo.record_view(
+        view = self.repo.record_view(
             spree_id=spree_id,
             user_id=user_id,
             watch_duration=watch_duration,
             completed=completed,
         )
 
+        if user_id:
+            self.affinity_service.process_view_signal(
+                user_id=user_id,
+                spree=spree,
+                watch_duration=watch_duration,
+                completed=completed,
+            )
+
+        return view
+
     def clap_spree(self, spree_id: str, user_id: str) -> None:
         spree = self.repo.get_spree(spree_id)
         if not spree:
             raise LookupError("Spree not found.")
+        existing_clap = self.repo.get_clap(spree_id=spree_id, user_id=user_id)
         self.repo.add_clap(spree_id=spree_id, user_id=user_id)
+        if not existing_clap:
+            self.affinity_service.process_clap_signal(user_id=user_id, spree=spree)
 
     def unclap_spree(self, spree_id: str, user_id: str) -> None:
         spree = self.repo.get_spree(spree_id)
@@ -113,13 +128,18 @@ class EngagementService:
         )
         share = self.repo.record_share(spree_id=spree_id, user_id=user_id, platform=platform)
         share_count = self.repo.count_shares(spree_id=spree_id)
+        if user_id:
+            self.affinity_service.process_share_signal(user_id=user_id, spree=spree)
         return share, share_count
 
     def save_spree(self, spree_id: str, user_id: str) -> None:
         spree = self.repo.get_spree(spree_id)
         if not spree:
             raise LookupError("Spree not found.")
+        existing_save = self.repo.get_save(spree_id=spree_id, user_id=user_id)
         self.repo.add_save(spree_id=spree_id, user_id=user_id)
+        if not existing_save:
+            self.affinity_service.process_save_signal(user_id=user_id, spree=spree)
 
     def unsave_spree(self, spree_id: str, user_id: str) -> None:
         spree = self.repo.get_spree(spree_id)

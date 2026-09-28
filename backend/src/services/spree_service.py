@@ -39,6 +39,8 @@ class SpreeService:
             media_url=media_url,
             thumbnail_url=thumbnail_url,
             duration=payload.duration,
+            category=payload.category,
+            tags=payload.tags or [],
             visibility=payload.visibility if payload.visibility else SpreeVisibility.PUBLIC,
         )
         return self.spree_repo.create(spree)
@@ -127,9 +129,13 @@ class SpreeService:
             "thumbnail_url",
             "duration",
             "visibility",
+            "category",
+            "tags",
         }
         for field, value in update_data.items():
             if field in ALLOWED_UPDATE_FIELDS:
+                if field == "tags" and value is None:
+                    value = []
                 setattr(spree, field, value)
 
         spree.updated_at = datetime.now(timezone.utc)

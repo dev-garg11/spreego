@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set
 from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session, contains_eager, joinedload
+from src.models.affinity import UserTopicAffinity
 from src.models.buzzer import BuzzerCampaign, BuzzerStatus
 from src.models.engagement import (
     SpreeClap,
@@ -17,6 +18,7 @@ from src.models.follow import Follow
 from src.models.spree import Spree, SpreeType, SpreeVisibility
 from src.models.user import User
 from src.repositories.buzzer_repository import BuzzerRepository
+from src.services.affinity_service import extract_spree_topics
 from src.validations.feed_schemas import (
     FeedCreatorInfo,
     FeedEngagementMetrics,
@@ -42,6 +44,8 @@ class SpreeCandidate:
     buzzer_multiplier: float = 1.0
     is_buzzer_active: bool = False
     is_following_creator: bool = False
+    topic_affinity_boost: float = 0.0
+    user_topic_affinities: Optional[Dict[str, float]] = None
 
 
 @dataclass
@@ -66,27 +70,67 @@ class FeedRankingStrategy(ABC):
         """Calculate ranking score for a candidate Spree based on real signals."""
         pass
 
+    def apply_anti_fatigue(
+        self,
+        items: List[ScoredSpreeItem],
+        max_consecutive: int = 2,
+    ) -> List[ScoredSpreeItem]:
+        """
+        Anti-fatigue check: ensure diverse ranking so a single creator
+        doesn't completely monopolize consecutive feed items.
+        Allows at most `max_consecutive` consecutive items from the same creator
+        when candidates from other creators are available.
+        """
+        if len(items) <= max_consecutive or max_consecutive <= 0:
+            return items
+
+        remaining = list(items)
+        result: List[ScoredSpreeItem] = []
+
+        while remaining:
+            last_creators = [
+                r.spree.creator_id
+                for r in result[-max_consecutive:]
+                if r.spree and r.spree.creator_id
+            ]
+
+            must_diversify = (
+                len(last_creators) == max_consecutive
+                and len(set(last_creators)) == 1
+            )
+
+            chosen_idx = None
+            if must_diversify:
+                banned_creator = last_creators[0]
+                for i, cand in enumerate(remaining):
+                    cand_creator = cand.spree.creator_id if cand.spree else None
+                    if cand_creator != banned_creator:
+                        chosen_idx = i
+                        break
+
+            if chosen_idx is None:
+                chosen_idx = 0
+
+            result.append(remaining.pop(chosen_idx))
+
+        return result
+
     def rank_candidates(
         self,
         candidates: List[SpreeCandidate],
         now: datetime,
     ) -> List[ScoredSpreeItem]:
-        """Rank candidates in descending order of score with deterministic tie-breaking."""
+        """Rank candidates in descending order of score with deterministic tie-breaking and anti-fatigue diversity."""
         scored = [self.score_candidate(c, now) for c in candidates]
 
         def sort_key(item: ScoredSpreeItem):
-            dt = item.spree.created_at
-            if dt is None:
-                ts = 0.0
-            elif dt.tzinfo is None:
-                ts = dt.replace(tzinfo=timezone.utc).timestamp()
-            else:
-                ts = dt.timestamp()
+            ts = ensure_utc(item.spree.created_at).timestamp() if item.spree and item.spree.created_at else 0.0
             score = item.score if not (math.isnan(item.score) or math.isinf(item.score)) else 0.0
             return (score, ts, str(item.spree.id or ""))
 
         scored.sort(key=sort_key, reverse=True)
-        return scored
+        max_consecutive = getattr(self, "max_consecutive_creator", 2)
+        return self.apply_anti_fatigue(scored, max_consecutive=max_consecutive)
 
 
 def ensure_utc(dt: Optional[datetime] = None) -> datetime:
@@ -119,6 +163,7 @@ class HeuristicFeedRankingStrategy(FeedRankingStrategy):
         affinity_boost: float = 25.0,
         base_score: float = 10.0,
         half_life_hours: float = 24.0,
+        max_consecutive_creator: int = 2,
     ):
         self.weight_clap = weight_clap
         self.weight_comment = weight_comment
@@ -129,6 +174,21 @@ class HeuristicFeedRankingStrategy(FeedRankingStrategy):
         self.affinity_boost = affinity_boost
         self.base_score = base_score
         self.half_life_hours = max(0.1, half_life_hours)
+        self.max_consecutive_creator = max_consecutive_creator
+
+    def compute_topic_affinity_boost(
+        self,
+        spree: Spree,
+        user_affinities: Optional[Dict[str, float]],
+    ) -> float:
+        """
+        Compute topic_affinity_boost = sum(user_topic_score for topic in spree_topics).
+        Looks up the user's affinity scores for candidate Spree's category and tags.
+        """
+        if not user_affinities or not spree:
+            return 0.0
+        spree_topics = extract_spree_topics(spree)
+        return max(0.0, float(sum(user_affinities.get(t, 0.0) for t in spree_topics)))
 
     def score_candidate(
         self,
@@ -139,12 +199,8 @@ class HeuristicFeedRankingStrategy(FeedRankingStrategy):
         eng = candidate.engagement
 
         # 1. Freshness decay
-        created_at = spree.created_at
-        if created_at is None:
-            created_at = now
-        elif created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
         current_time = ensure_utc(now)
+        created_at = ensure_utc(spree.created_at) if spree.created_at is not None else current_time
 
         age_seconds = max(0.0, (current_time - created_at).total_seconds())
         age_hours = age_seconds / 3600.0
@@ -174,14 +230,24 @@ class HeuristicFeedRankingStrategy(FeedRankingStrategy):
         # 4. Creator affinity boost
         affinity_score = self.affinity_boost if candidate.is_following_creator else 0.0
 
+        # 5. Topic affinity boost
+        if candidate.user_topic_affinities is not None:
+            topic_boost = self.compute_topic_affinity_boost(spree, candidate.user_topic_affinities)
+        elif candidate.topic_affinity_boost > 0.0:
+            topic_boost = float(candidate.topic_affinity_boost)
+        else:
+            topic_boost = 0.0
+        topic_boost = max(0.0, topic_boost)
+
         # Combine signals
         raw_score = max(
             0.0,
             (self.base_score + engagement_score + watch_quality_score) * freshness_decay
-            + affinity_score,
+            + affinity_score
+            + topic_boost,
         )
 
-        # 5. Buzzer multiplier
+        # 6. Buzzer multiplier
         buzzer_mult = max(1.0, float(candidate.buzzer_multiplier)) if candidate.is_buzzer_active else 1.0
         if math.isnan(buzzer_mult) or math.isinf(buzzer_mult):
             buzzer_mult = 1.0
@@ -194,6 +260,7 @@ class HeuristicFeedRankingStrategy(FeedRankingStrategy):
             "engagement_score": round(engagement_score, 4),
             "watch_quality_score": round(watch_quality_score, 4),
             "affinity_score": round(affinity_score, 4),
+            "topic_affinity_boost": round(topic_boost, 4),
             "raw_score": round(raw_score, 4),
             "buzzer_multiplier": round(buzzer_mult, 4),
             "final_score": final_score,
@@ -306,6 +373,16 @@ class FeedRankingService:
                 )
                 followed_creator_ids.update(f[0] for f in follows)
 
+        # Batch-fetch topic affinities for authenticated requesting user
+        affinity_map: Dict[str, float] = {}
+        if requesting_user is not None:
+            user_affinities = (
+                self.db.query(UserTopicAffinity.topic, UserTopicAffinity.score)
+                .filter(UserTopicAffinity.user_id == requesting_user.id)
+                .all()
+            )
+            affinity_map = {row[0]: float(row[1]) for row in user_affinities}
+
         # Batch-aggregate engagement statistics
         stats_map = self._batch_aggregate_engagement(spree_ids)
 
@@ -324,6 +401,11 @@ class FeedRankingService:
             buzzer_mult = campaign.boost_multiplier if campaign else 1.0
             is_following = spree.creator_id in followed_creator_ids if requesting_user else False
 
+            topic_boost = 0.0
+            if requesting_user and affinity_map:
+                spree_topics = extract_spree_topics(spree)
+                topic_boost = sum(affinity_map.get(t, 0.0) for t in spree_topics)
+
             candidate_items.append(
                 SpreeCandidate(
                     spree=spree,
@@ -331,6 +413,8 @@ class FeedRankingService:
                     buzzer_multiplier=buzzer_mult,
                     is_buzzer_active=is_buzzer_active,
                     is_following_creator=is_following,
+                    topic_affinity_boost=topic_boost,
+                    user_topic_affinities=affinity_map if requesting_user else None,
                 )
             )
 
@@ -452,6 +536,8 @@ class FeedRankingService:
             thumbnail_url=spree.thumbnail_url,
             duration=spree.duration,
             visibility=spree.visibility,
+            category=spree.category,
+            tags=spree.tags if spree.tags is not None else [],
             created_at=spree.created_at,
             updated_at=spree.updated_at,
             creator=creator_info,

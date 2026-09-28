@@ -1,7 +1,7 @@
 import enum
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, DateTime, Enum as SAEnum, Float, ForeignKey, String, Text
+from sqlalchemy import Column, DateTime, Enum as SAEnum, Float, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import relationship
 from src.config.database import Base
 
@@ -39,6 +39,8 @@ class Spree(Base):
     media_url = Column(String(1024), nullable=False)
     thumbnail_url = Column(String(1024), nullable=True)
     duration = Column(Float, nullable=True)
+    category = Column(String(100), nullable=True, index=True)
+    tags = Column(JSON, nullable=False, default=list, server_default="'[]'")
     visibility = Column(
         SAEnum(SpreeVisibility, name="spree_visibility", native_enum=False, values_callable=lambda obj: [e.value for e in obj]),
         default=SpreeVisibility.PUBLIC,

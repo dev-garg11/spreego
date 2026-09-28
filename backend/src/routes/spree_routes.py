@@ -94,6 +94,18 @@ def get_spree(
     status_code=status.HTTP_200_OK,
     include_in_schema=False,
 )
+@router.put(
+    "/{id}",
+    response_model=SpreeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update Spree details via PUT",
+)
+@router.put(
+    "/{id}/",
+    response_model=SpreeResponse,
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False,
+)
 def update_spree(
     id: str,
     payload: UpdateSpreeRequest,

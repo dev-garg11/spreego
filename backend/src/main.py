@@ -72,18 +72,6 @@ app.mount("/static/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="u
 
 
 
-@app.get("/", tags=["Root"])
-def root():
-    """Welcome endpoint with API documentation and health links."""
-    return {
-        "service": settings.PROJECT_NAME,
-        "version": settings.VERSION,
-        "status": "online",
-        "docs_url": "/docs",
-        "health_url": "/health",
-    }
-
-
 @app.get("/health", tags=["Health"])
 def health_check():
     """Health check endpoint."""

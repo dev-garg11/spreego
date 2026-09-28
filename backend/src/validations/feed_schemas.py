@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, field_validator
 from src.models.spree import SpreeType, SpreeVisibility
 from src.validations.auth_schemas import BaseSchema
+from src.validations.spree_schemas import _clean_tags_list
 
 
 class FeedCreatorInfo(BaseSchema):
@@ -32,6 +33,8 @@ class FeedSpreeResponse(BaseSchema):
     thumbnail_url: Optional[str] = None
     duration: Optional[float] = None
     visibility: SpreeVisibility
+    category: Optional[str] = None
+    tags: list[str] = Field(default_factory=list)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     creator: Optional[FeedCreatorInfo] = None
@@ -44,3 +47,9 @@ class FeedSpreeResponse(BaseSchema):
     score: Optional[float] = None
     is_buzzer_active: bool = False
     boost_multiplier: float = 1.0
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def validate_tags(cls, v):
+        return _clean_tags_list(v)
+
