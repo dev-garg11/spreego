@@ -62,13 +62,18 @@ class OpenService:
             else dict(DEFAULT_SCORING_CONFIG)
         )
 
+        rules_val = None
+        if payload.rules:
+            import json
+            rules_val = json.dumps(payload.rules)
+
         open_obj = Open(
             creator_id=creator_id,
             type=payload.type,
             title=payload.title,
             description=payload.description,
             cover_image_url=payload.cover_image_url,
-            rules=payload.rules,
+            rules=rules_val,
             start_at=start_at,
             end_at=end_at,
             status=payload.status or OpenStatus.ACTIVE,

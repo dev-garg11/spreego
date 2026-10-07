@@ -184,7 +184,7 @@ def test_create_competition_open_with_custom_config(client: TestClient, db_sessi
     data = response.json()
     assert data["title"] == "Indie Filmmaker 2026"
     assert data["type"] == "COMPETITION"
-    assert data["rules"] == "1. Must be under 60s. 2. Original music only."
+    assert data["rules"] == ["1. Must be under 60s. 2. Original music only."]
     assert data["reward_info"] == "1st place: $5,000, 2nd place: $2,000"
     assert data["max_participants"] == 50
     assert data["scoring_config"] == custom_scoring
@@ -309,7 +309,7 @@ def test_get_single_open_details(client: TestClient, db_session: Session):
     assert data["id"] == open_id
     assert data["title"] == "Detailed Challenge"
     assert data["description"] == "A very detailed description."
-    assert data["rules"] == "Be creative and fair."
+    assert data["rules"] == ["Be creative and fair."]
     assert data["participants_count"] == 0
     assert data["submissions_count"] == 0
 
@@ -1376,6 +1376,46 @@ def test_concurrent_duplicate_join_integrity_error_handling(client: TestClient, 
     res2 = client.post(f"/api/v1/opens/{open_res['id']}/join", headers=auth_headers(user.id))
     assert res2.status_code == 400
     assert "already joined" in res2.json()["detail"].lower()
+
+
+def test_create_open_with_rules_list_and_end_at_validation(client: TestClient, db_session: Session):
+    """Test creating Open with rules as a list of strings and verifying end_at > start_at validation."""
+    creator = create_test_user(db_session, username="rules_validator")
+    now = datetime.now(timezone.utc)
+
+    # 1. Validation error: end_at before start_at
+    invalid_payload = {
+        "title": "Invalid Dates Open",
+        "start_at": (now + timedelta(days=2)).isoformat(),
+        "end_at": (now + timedelta(days=1)).isoformat(),
+    }
+    inv_res = client.post("/api/v1/opens", json=invalid_payload, headers=auth_headers(creator.id))
+    assert inv_res.status_code == 422 or inv_res.status_code == 400
+
+    # 2. Success with list[str] rules
+    valid_payload = {
+        "title": "Multi Rules Open",
+        "rules": ["Rule 1: Be authentic", "Rule 2: Minimum 15 seconds", "Rule 3: Original audio"],
+        "end_at": (now + timedelta(days=10)).isoformat(),
+    }
+    ok_res = client.post("/api/v1/opens", json=valid_payload, headers=auth_headers(creator.id))
+    assert ok_res.status_code == 201
+    data = ok_res.json()
+    assert isinstance(data["rules"], list)
+    assert len(data["rules"]) == 3
+    assert data["rules"][0] == "Rule 1: Be authentic"
+
+
+def test_get_featured_sponsorship_endpoint(client: TestClient, db_session: Session):
+    """Test GET /api/v1/sponsorships/featured returns a structured campaign."""
+    res = client.get("/api/v1/sponsorships/featured")
+    assert res.status_code == 200
+    data = res.json()
+    assert "brand_name" in data
+    assert "campaign_title" in data
+    assert "reward_pool" in data
+    assert "hero_image_url" in data
+
 
 
 

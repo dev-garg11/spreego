@@ -14,8 +14,6 @@ class OpenRepository(BaseRepository[Open]):
             self.db.query(Open)
             .options(
                 joinedload(Open.creator),
-                selectinload(Open.participants),
-                selectinload(Open.submissions),
             )
             .filter(Open.id == id)
             .first()
@@ -30,8 +28,6 @@ class OpenRepository(BaseRepository[Open]):
     ) -> List[Open]:
         query = self.db.query(Open).options(
             joinedload(Open.creator),
-            selectinload(Open.participants),
-            selectinload(Open.submissions),
         )
         if open_type is not None:
             query = query.filter(Open.type == open_type)

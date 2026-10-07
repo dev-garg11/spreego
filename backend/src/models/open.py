@@ -13,8 +13,10 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
+    select,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, column_property, relationship
 from src.config.database import Base
 
 
@@ -119,18 +121,8 @@ class Open(Base):
             end = end.astimezone(timezone.utc)
         return start <= now <= end
 
-    # ponytail: relationship length count via selectinload; switch to column_property(count) if participant lists exceed 50k
-    @property
-    def participants_count(self) -> int:
-        if self.participants is not None:
-            return len(self.participants)
-        return 0
+    # Replaced relationship length loading with column_property scalar subqueries for high performance
 
-    @property
-    def submissions_count(self) -> int:
-        if self.submissions is not None:
-            return len(self.submissions)
-        return 0
 
     def __repr__(self) -> str:
         return f"<Open(id='{self.id}', type='{self.type}', title='{self.title}', status='{self.status}')>"
@@ -211,3 +203,20 @@ class OpenSubmission(Base):
 
     def __repr__(self) -> str:
         return f"<OpenSubmission(id='{self.id}', open_id='{self.open_id}', spree_id='{self.spree_id}', score={self.score}, rank={self.rank})>"
+
+
+# High-performance scalar subquery counts to prevent loading large relationship lists into memory
+Open.participants_count = column_property(
+    select(func.count(OpenParticipant.id))
+    .where(OpenParticipant.open_id == Open.id)
+    .correlate_except(OpenParticipant)
+    .scalar_subquery()
+)
+
+Open.submissions_count = column_property(
+    select(func.count(OpenSubmission.id))
+    .where(OpenSubmission.open_id == Open.id)
+    .correlate_except(OpenSubmission)
+    .scalar_subquery()
+)
+

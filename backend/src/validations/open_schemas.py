@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 from pydantic import Field, field_validator
 from src.models.open import DEFAULT_SCORING_CONFIG, OpenStatus, OpenType
 from src.validations.auth_schemas import BaseSchema
@@ -11,7 +11,7 @@ class CreateOpenRequest(BaseSchema):
     title: str = Field(..., max_length=255, description="Open title")
     description: Optional[str] = Field(None, max_length=10000, description="Detailed description")
     cover_image_url: Optional[str] = Field(None, max_length=1024, description="Optional cover image URL")
-    rules: Optional[str] = Field(None, max_length=10000, description="Optional rules or instructions")
+    rules: Optional[Union[List[str], str]] = Field(None, description="Optional rules or instructions")
     start_at: Optional[datetime] = Field(None, description="Start datetime (defaults to now)")
     end_at: datetime = Field(..., description="End datetime (must be after start_at)")
     status: Optional[OpenStatus] = Field(default=OpenStatus.ACTIVE, description="Open status")
@@ -46,14 +46,29 @@ class CreateOpenRequest(BaseSchema):
                 return None
         return v
 
-    @field_validator("rules")
+    @field_validator("rules", mode="before")
     @classmethod
-    def validate_rules(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
+    def validate_rules(cls, v: Any) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if isinstance(v, list):
+            cleaned = [str(r).strip() for r in v if r and str(r).strip()]
+            return cleaned if cleaned else None
+        if isinstance(v, str):
             v = v.strip()
             if not v:
                 return None
-        return v
+            import json
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    cleaned = [str(r).strip() for r in parsed if r and str(r).strip()]
+                    return cleaned if cleaned else None
+            except Exception:
+                pass
+            lines = [line.strip("-•* ").strip() for line in v.splitlines() if line.strip()]
+            return lines if lines else [v]
+        return None
 
     @field_validator("reward_info")
     @classmethod
@@ -94,7 +109,7 @@ class OpenResponse(BaseSchema):
     title: str
     description: Optional[str] = None
     cover_image_url: Optional[str] = None
-    rules: Optional[str] = None
+    rules: Optional[List[str]] = None
     start_at: datetime
     end_at: datetime
     status: OpenStatus
@@ -106,6 +121,38 @@ class OpenResponse(BaseSchema):
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("rules", mode="before")
+    @classmethod
+    def parse_rules_for_response(cls, v: Any) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return [str(r) for r in v if r]
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return None
+            import json
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(r) for r in parsed if r]
+            except Exception:
+                pass
+            lines = [line.strip("-•* ").strip() for line in v.splitlines() if line.strip()]
+            return lines if lines else [v]
+        return None
+
+    @field_validator("participants_count", "submissions_count", mode="before")
+    @classmethod
+    def parse_counts_for_response(cls, v: Any) -> int:
+        if v is None:
+            return 0
+        try:
+            return int(v)
+        except Exception:
+            return 0
 
 
 class JoinOpenResponse(BaseSchema):

@@ -10,7 +10,7 @@ from src.routes.feed_routes import router as feed_router
 from src.routes.buzzer_routes import router as buzzer_router
 from src.routes.spree_routes import router as spree_router
 from src.routes.engagement_routes import router as engagement_router
-from src.routes.open_routes import router as open_router
+from src.routes.open_routes import router as open_router, sponsorship_router
 from src.routes.membership_routes import router as membership_router
 from src.routes.product_routes import router as product_router
 from src.routes.order_routes import router as order_router
@@ -60,6 +60,7 @@ app.include_router(buzzer_router)
 app.include_router(spree_router)
 app.include_router(engagement_router)
 app.include_router(open_router)
+app.include_router(sponsorship_router)
 app.include_router(membership_router)
 app.include_router(product_router)
 app.include_router(order_router)

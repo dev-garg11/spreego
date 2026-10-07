@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from src.config.database import get_db
 from src.controllers.open_controller import OpenController
+from src.services.open_service import OpenService
 from src.middlewares.auth_middleware import get_current_user
 from src.models.open import OpenStatus, OpenType
 from src.models.user import User
@@ -219,3 +220,66 @@ def get_open_ranking(
     driven dynamically by the Open's stored scoring_config.
     """
     return OpenController.get_ranking(open_id=id, db=db)
+
+
+# ============================================================================
+# 8. Sponsorship Featured API (GET /api/v1/sponsorships/featured)
+# ============================================================================
+
+sponsorship_router = APIRouter(prefix="/api/v1/sponsorships", tags=["Sponsorships"])
+
+
+@sponsorship_router.get(
+    "/featured",
+    status_code=status.HTTP_200_OK,
+    summary="Get featured brand sponsorship campaign",
+)
+def get_featured_sponsorship(db: Session = Depends(get_db)):
+    """Returns featured active SPONSORED Open campaign, or structured default with is_demo flag."""
+    service = OpenService(db)
+    sponsored_opens = service.list_opens(open_type=OpenType.SPONSORED, open_status=OpenStatus.ACTIVE, limit=1)
+    if not sponsored_opens:
+        sponsored_opens = service.list_opens(open_type=OpenType.SPONSORED, limit=1)
+
+    if sponsored_opens:
+        sp = sponsored_opens[0]
+        creator_name = "Official Sponsor"
+        creator_avatar = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150"
+        if sp.creator and hasattr(sp.creator, "profile") and sp.creator.profile:
+            creator_name = sp.creator.profile.full_name or sp.creator.profile.username or creator_name
+            creator_avatar = sp.creator.profile.avatar_url or creator_avatar
+
+        duration = 15
+        if sp.start_at and sp.end_at:
+            duration = max(1, (sp.end_at - sp.start_at).days)
+
+        return {
+            "id": sp.id,
+            "brand_name": creator_name,
+            "brand_logo_url": creator_avatar,
+            "campaign_title": sp.title,
+            "hero_image_url": sp.cover_image_url or "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+            "headline": sp.title,
+            "description": sp.description or "Official sponsored campaign",
+            "reward_pool": sp.reward_info or "₹1,00,000",
+            "duration_days": duration,
+            "winners_quota": 10,
+            "about_brand": sp.description or "Sponsored Brand Collaboration",
+            "is_demo": False,
+        }
+
+    return {
+        "id": "campaign_tata_001",
+        "brand_name": "Tata Motors",
+        "brand_logo_url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150",
+        "campaign_title": "Drive Your Story",
+        "hero_image_url": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800",
+        "headline": "Drive Your Story with Tata",
+        "description": "Create a 30 sec spree showing how you make your journeys special with Tata.",
+        "reward_pool": "₹1,00,000",
+        "duration_days": 15,
+        "winners_quota": 10,
+        "about_brand": "Innovation, trust and a better tomorrow. Join the movement.",
+        "is_demo": True,
+    }
+
