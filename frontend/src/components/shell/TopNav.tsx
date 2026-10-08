@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Search, Zap, Volume2, VolumeX, ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FeedSubTab } from '../../types';
+import { NotificationDrawer } from './NotificationDrawer';
 
 interface TopNavProps {
   activeSubTab?: FeedSubTab;
@@ -19,14 +20,15 @@ export const TopNav: React.FC<TopNavProps> = ({
   onBack,
   customTitle,
 }) => {
-  const { currentTab, soundMuted, toggleSound, showToast } = useApp();
+  const { currentTab, soundMuted, toggleSound, showToast, setCurrentTab } = useApp();
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const handleNotificationClick = () => {
-    showToast('Notifications: You have 3 new claps and 1 challenge invitation');
+    setIsNotificationOpen(true);
   };
 
   const handleSearchClick = () => {
-    showToast('Search active: Exploring trending creators and challenges');
+    setCurrentTab('spree');
   };
 
   return (
@@ -128,10 +130,17 @@ export const TopNav: React.FC<TopNavProps> = ({
             className="relative p-2 rounded-full hover:bg-spreego-elevated active:scale-90 text-spreego-text-secondary hover:text-spreego-text-primary transition-all"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-spreego-violet" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-spreego-violet animate-pulse" />
           </button>
         </div>
       </div>
+
+      {/* Full Notification Center Drawer */}
+      <NotificationDrawer
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        onActionClick={() => setIsNotificationOpen(false)}
+      />
     </header>
   );
 };

@@ -16,6 +16,7 @@ import {
   Check,
   Plus,
   Sparkles,
+  Flame,
 } from 'lucide-react';
 
 interface ReelCardProps {
@@ -30,6 +31,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   const [claps, setClaps] = useState(spree.claps_count ?? 12400);
   const [hasClapped, setHasClapped] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
+  const [hasBuzzed, setHasBuzzed] = useState(false);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -208,6 +210,29 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
             {isFollowing ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
           </button>
         </div>
+
+        {/* Buzzer Booster Button (24-hr Reach Multiplier) */}
+        <button
+          onClick={() => {
+            setHasBuzzed(true);
+            triggerClapConfetti();
+          }}
+          aria-label="Buzzer Boost"
+          className="flex flex-col items-center group active:scale-90 transition-transform"
+        >
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all ${
+              hasBuzzed
+                ? 'bg-amber-500/30 border-amber-400 text-amber-300 shadow-lg shadow-amber-500/40 animate-pulse'
+                : 'bg-black/40 border-white/10 text-white group-hover:bg-black/60'
+            }`}
+          >
+            <Flame className={`w-5 h-5 ${hasBuzzed ? 'fill-amber-400 text-amber-400' : 'text-amber-400'}`} />
+          </div>
+          <span className="text-[9px] font-mono font-bold text-amber-400 mt-0.5 drop-shadow">
+            {hasBuzzed ? '2x LIVE' : 'BOOST'}
+          </span>
+        </button>
 
         {/* Clap Reaction Button */}
         <button

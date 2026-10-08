@@ -6,12 +6,23 @@ import { useTelemetry } from '../../hooks/useTelemetry';
 import { ReelCard } from './ReelCard';
 import { ChevronUp, ChevronDown, MousePointerClick } from 'lucide-react';
 
+import { FollowingFeed } from './FollowingFeed';
+import { ClubsFeed } from './ClubsFeed';
+
 interface ReelFeedProps {
   subTab: FeedSubTab;
   onExploreSponsored?: () => void;
 }
 
 export const ReelFeed: React.FC<ReelFeedProps> = ({ subTab, onExploreSponsored }) => {
+  if (subTab === 'following') {
+    return <FollowingFeed />;
+  }
+
+  if (subTab === 'clubs') {
+    return <ClubsFeed />;
+  }
+
   const [sprees, setSprees] = useState<SpreeItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<number>(1);

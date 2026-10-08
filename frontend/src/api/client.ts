@@ -361,9 +361,9 @@ export const opensApi = {
       return await apiFetch<Open>(`${BASE_URL}/opens/${id}`, { method: 'GET' });
     } catch (err) {
       const apiErr = err as ApiError;
-      if (apiErr.status === 0) {
-        const fallback = mockOpens.find((o) => o.id === id);
-        return fallback || mockOpens[0];
+      if (apiErr.status === 0 || apiErr.status === 404 || apiErr.status >= 500) {
+        const fallback = mockOpens.find((o) => o.id === id) || mockOpens[0];
+        return fallback;
       }
       throw err;
     }
@@ -678,6 +678,58 @@ export const userApi = {
       `${BASE_URL}/users/${id}/follow`,
       { method: 'POST' },
       { success: true, message: 'Followed creator successfully' }
+    );
+  },
+};
+
+/* =====================================================================
+   NOTIFICATIONS API
+===================================================================== */
+export const notificationApi = {
+  async getNotifications(): Promise<any[]> {
+    const res = await safeFetch<any[]>(
+      `${BASE_URL}/notifications`,
+      { method: 'GET' },
+      mockNotifications
+    );
+    return res || mockNotifications;
+  },
+
+  async getUnreadCount(): Promise<number> {
+    const res = await safeFetch<{ unread_count: number }>(
+      `${BASE_URL}/notifications/unread-count`,
+      { method: 'GET' },
+      { unread_count: 3 }
+    );
+    return res.unread_count ?? 3;
+  },
+
+  async markAllAsRead(): Promise<{ success: boolean }> {
+    return safeFetch<{ success: boolean }>(
+      `${BASE_URL}/notifications/read-all`,
+      { method: 'POST' },
+      { success: true }
+    );
+  },
+};
+
+/* =====================================================================
+   CLUBS & COMMUNITY API
+===================================================================== */
+export const clubApi = {
+  async getClubs(): Promise<any[]> {
+    return safeFetch<any[]>(
+      `${BASE_URL}/clubs`,
+      { method: 'GET' },
+      mockClubs
+    );
+  },
+
+  async joinClub(clubId: string): Promise<{ success: boolean; message: string }> {
+    return safeFetch<{ success: boolean; message: string }>(
+      `${BASE_URL}/clubs/${clubId}/join`,
+      { method: 'POST' },
+      { success: true, message: 'Joined Club successfully!' }
     );
   },
 };

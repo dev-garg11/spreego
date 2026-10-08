@@ -665,3 +665,290 @@ export const mockWalletSummary: WalletSummary = {
   currency: 'INR',
   upi_id: 'travelwithme@okaxis',
 };
+
+/* =====================================================================
+   NOTIFICATIONS, CLUBS & STORY MOMENTS MOCK DATA
+===================================================================== */
+export const mockNotifications = [
+  {
+    id: 'notif_001',
+    type: 'DROP' as const,
+    title: '⚡ Exclusive Brand Drop Alert',
+    message: 'Nike opened early access to the "Air Max Velocity" teaser for Club members.',
+    created_at: '10m ago',
+    is_read: false,
+    reward_badge: 'Exclusive',
+    actor_avatar: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100',
+  },
+  {
+    id: 'notif_002',
+    type: 'BUZZER' as const,
+    title: '🚀 24h Buzzer Boost Activated!',
+    message: 'Your Spree "Sunset in Santorini" reached 2x reach boost. 1,420 new viewers reached!',
+    created_at: '35m ago',
+    is_read: false,
+    reward_badge: '2x Boost',
+    actor_avatar: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=100',
+  },
+  {
+    id: 'notif_003',
+    type: 'MISSION' as const,
+    title: '🏆 Daily Mission Reward Claimed',
+    message: 'Mission "Upload 1 Spree with sound" completed! +50 Coins added to wallet.',
+    created_at: '2h ago',
+    is_read: false,
+    reward_badge: '+50 Coins',
+  },
+  {
+    id: 'notif_004',
+    type: 'CLAP' as const,
+    title: '👏 50 Claps Received',
+    message: '@foodie_riya and 49 others clapped on your Spree.',
+    created_at: '4h ago',
+    is_read: true,
+    actor_name: 'Foodie Riya',
+    actor_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+  },
+  {
+    id: 'notif_005',
+    type: 'OPEN' as const,
+    title: '⚔️ Competition Battle Invitation',
+    message: 'You have been invited to enter "Level 2: Pro Spree Challenge" (₹50,000 Prize Pool).',
+    created_at: '1d ago',
+    is_read: true,
+    reward_badge: '₹50,000 Pool',
+  },
+];
+
+export const mockClubs = [
+  {
+    id: 'club_fitness',
+    name: 'Fitness Hustlers',
+    tagline: 'Daily transformation, workout sprees & strength battles',
+    icon: '⚡',
+    cover_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600',
+    members_count: 14200,
+    posts_count: 840,
+    category: 'Fitness',
+    is_joined: true,
+    active_drop: {
+      title: '7-Day Core Shred Challenge',
+      reward: '₹25,000 Pool',
+      expires_in: '3 Days left',
+    },
+    pinned_thread: 'Share your 1-minute morning mobility routine!',
+    top_creators: [
+      { name: 'Aarav Sharma', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' },
+      { name: 'Elena Fit', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100' },
+    ],
+  },
+  {
+    id: 'club_art',
+    name: 'Digital Art & Collages',
+    tagline: 'Visual storytellers, 3D artists, canvas threads',
+    icon: '🎨',
+    cover_image: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600',
+    members_count: 9800,
+    posts_count: 620,
+    category: 'Art & Design',
+    is_joined: false,
+    active_drop: {
+      title: 'Cyberpunk Aesthetic Collage Thread',
+      reward: 'NFT Badge + ₹15,000',
+      expires_in: '5 Days left',
+    },
+    pinned_thread: 'Add your layer to the community evolving tapestry',
+    top_creators: [
+      { name: 'Maya Crafts', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100' },
+    ],
+  },
+  {
+    id: 'club_food',
+    name: 'Street Food Explorers',
+    tagline: 'Hidden food stalls, secret recipes, tasting reviews',
+    icon: '🍳',
+    cover_image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600',
+    members_count: 24500,
+    posts_count: 1450,
+    category: 'Food',
+    is_joined: true,
+    active_drop: {
+      title: 'Old Delhi Midnight Chaat Spree',
+      reward: 'Featured Creator Badge',
+      expires_in: '1 Day left',
+    },
+    pinned_thread: 'Best street snack under ₹50 in your city?',
+    top_creators: [
+      { name: 'Foodie Riya', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100' },
+    ],
+  },
+  {
+    id: 'club_tech',
+    name: 'AI & Tech Innovators',
+    tagline: 'Virtual try-ons, gadgets, coding hacks & generative visuals',
+    icon: '🚀',
+    cover_image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600',
+    members_count: 18900,
+    posts_count: 910,
+    category: 'Tech',
+    is_joined: false,
+    active_drop: {
+      title: 'AI Virtual Try-On Showcase',
+      reward: '₹35,000 Bounty',
+      expires_in: '6 Days left',
+    },
+    pinned_thread: 'Show us your favorite generative UI workflow',
+  },
+];
+
+export const mockStoryCollections = [
+  {
+    id: 'h1',
+    title: 'Highlights',
+    cover_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150',
+    stories: [
+      {
+        id: 's1_1',
+        media_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+        type: 'image' as const,
+        caption: 'Golden sunsets by the coast 🌅',
+        timestamp: '3h ago',
+        location: 'Goa Beaches',
+      },
+      {
+        id: 's1_2',
+        media_url: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800',
+        type: 'image' as const,
+        caption: 'Endless horizon and pure ocean breeze 🌊',
+        timestamp: '5h ago',
+        location: 'Maldives',
+      },
+    ],
+  },
+  {
+    id: 'h2',
+    title: 'Travel',
+    cover_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=150',
+    stories: [
+      {
+        id: 's2_1',
+        media_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800',
+        type: 'image' as const,
+        caption: 'Road tripping across mountain valleys 🏔️',
+        timestamp: '1d ago',
+        location: 'Ladakh Pass',
+      },
+      {
+        id: 's2_2',
+        media_url: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800',
+        type: 'image' as const,
+        caption: 'Whitewashed rooftops of Oia, Santorini ✨',
+        timestamp: '2d ago',
+        location: 'Santorini, Greece',
+      },
+    ],
+  },
+  {
+    id: 'h3',
+    title: 'Food',
+    cover_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=150',
+    stories: [
+      {
+        id: 's3_1',
+        media_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
+        type: 'image' as const,
+        caption: 'Chef special gourmet tasting menu 🍷',
+        timestamp: '2d ago',
+        location: 'Fire & Spice Bistro',
+      },
+      {
+        id: 's3_2',
+        media_url: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=800',
+        type: 'image' as const,
+        caption: 'Crispy sizzling paneer tikka with mint chutney 🧀',
+        timestamp: '3d ago',
+        location: 'Old Delhi Chaat',
+      },
+    ],
+  },
+  {
+    id: 'h4',
+    title: 'Lifestyle',
+    cover_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
+    stories: [
+      {
+        id: 's4_1',
+        media_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800',
+        type: 'image' as const,
+        caption: 'Morning coffee & creative studio flow ☕',
+        timestamp: '4d ago',
+        location: 'Creator Lab',
+      },
+    ],
+  },
+  {
+    id: 'h5',
+    title: 'Q&A',
+    cover_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
+    stories: [
+      {
+        id: 's5_1',
+        media_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800',
+        type: 'image' as const,
+        caption: 'Answer: How do I shoot steady videos? Gimbal + 60fps! 🎥',
+        timestamp: '5d ago',
+        location: 'Ask Me Anything',
+      },
+    ],
+  },
+];
+
+export const mockMomentsBook = [
+  {
+    id: 'page_1',
+    book_title: 'Summer Chronicles',
+    page_number: 1,
+    image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600',
+    text: 'Page 1 • The journey began at sunrise where the waves met the golden shore.',
+    date: 'June 2026',
+  },
+  {
+    id: 'page_2',
+    book_title: 'Summer Chronicles',
+    page_number: 2,
+    image_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600',
+    text: 'Page 2 • Through mountain ridges and silent pines, finding stillness in every stride.',
+    date: 'July 2026',
+  },
+  {
+    id: 'page_3',
+    book_title: 'Summer Chronicles',
+    page_number: 3,
+    image_url: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=600',
+    text: 'Page 3 • Blue domes of the Mediterranean. Every sunset told a story of its own.',
+    date: 'August 2026',
+  },
+];
+
+export const mockCollageThreads = [
+  {
+    id: 'collab_01',
+    title: 'Cyberpunk Neon Dreamscape',
+    creator_name: 'Maya & 8 Collaborators',
+    creator_avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
+    collaborators_count: 9,
+    layers_count: 24,
+    cover_url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600',
+    tags: ['cyberpunk', 'neon', 'visualart', 'community'],
+  },
+  {
+    id: 'collab_02',
+    title: 'Monsoon Chai & Rains',
+    creator_name: 'Elena & 14 Spreemates',
+    creator_avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+    collaborators_count: 15,
+    layers_count: 38,
+    cover_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
+    tags: ['monsoon', 'street', 'cozy', 'story'],
+  },
+];
