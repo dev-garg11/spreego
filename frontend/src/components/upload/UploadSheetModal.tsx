@@ -16,15 +16,19 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
+import { useApp } from '../../context/AppContext';
+
 interface UploadSheetModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onClose }) => {
+  const { showToast } = useApp();
   const [, setSelectedMode] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const creationModes = [
     {
@@ -87,9 +91,16 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
         setUploadComplete(false);
         setSelectedMode(null);
         onClose();
-        alert(`Successfully uploaded in ${modeId} mode!`);
-      }, 1200);
-    }, 1500);
+        showToast(`Successfully published ${modeId} to your feed! ✨`);
+      }, 900);
+    }, 1200);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      handleSelectMode(file.type.startsWith('video') ? 'video' : 'photo');
+    }
   };
 
   return (
@@ -212,6 +223,14 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
                   </div>
                   <Sparkles className="w-5 h-5 text-spreego-champagne shrink-0" />
                 </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/*,image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
               </>
             )}
           </motion.div>

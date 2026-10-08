@@ -3,11 +3,14 @@ import { BrandCampaign } from '../../types';
 import { opensApi } from '../../api/client';
 import { ArrowLeft, Trophy, Calendar, Users, Sparkles, Check } from 'lucide-react';
 
+import { useApp } from '../../context/AppContext';
+
 interface BrandSponsorshipProps {
   onBack: () => void;
 }
 
 export const BrandSponsorship: React.FC<BrandSponsorshipProps> = ({ onBack }) => {
+  const { showToast } = useApp();
   const [campaign, setCampaign] = useState<BrandCampaign | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
 
@@ -119,7 +122,7 @@ export const BrandSponsorship: React.FC<BrandSponsorshipProps> = ({ onBack }) =>
         <button
           onClick={() => {
             setHasJoined(true);
-            alert(`Registered for ${campaign.brand_name} campaign! Submission open.`);
+            showToast(`Registered for ${campaign.brand_name} campaign! Submission open.`);
           }}
           disabled={hasJoined}
           className={`w-full py-3.5 rounded-2xl font-display font-bold text-sm shadow-lg flex items-center justify-center space-x-2 transition-all active:scale-[0.98] ${

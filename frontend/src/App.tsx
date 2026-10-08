@@ -23,7 +23,7 @@ const MainAppContent: React.FC = () => {
       <TopNav activeSubTab={activeSubTab} onSubTabChange={setActiveSubTab} />
 
       {/* Screen Router Container */}
-      <main className="flex-1 pt-14 pb-20 px-3 flex flex-col">
+      <main className={`flex-1 flex flex-col ${currentTab === 'home' ? 'pt-14 pb-20 px-0' : 'pt-14 pb-20 px-3'}`}>
         {currentTab === 'home' && (
           <ReelFeed
             subTab={activeSubTab}

@@ -4,7 +4,10 @@ import { storeApi } from '../../api/client';
 import { ProductCard } from './ProductCard';
 import { CheckCircle2 } from 'lucide-react';
 
+import { useApp } from '../../context/AppContext';
+
 export const StoreCatalog: React.FC = () => {
+  const { showToast } = useApp();
   const [activeTab, setActiveTab] = useState<StoreTab>('products');
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [pass, setPass] = useState<CommunityPass | null>(null);
@@ -16,16 +19,21 @@ export const StoreCatalog: React.FC = () => {
     setLoading(true);
     if (activeTab === 'orders') {
       storeApi.getOrders().then((res) => {
-        setOrders(res);
+        setOrders(res || []);
+        setLoading(false);
+      }).catch(() => {
+        setOrders([]);
         setLoading(false);
       });
     } else {
       Promise.all([
-        storeApi.getProducts(activeTab),
-        storeApi.getCommunityPass(),
+        storeApi.getProducts(activeTab).catch(() => []),
+        storeApi.getCommunityPass().catch(() => null),
       ]).then(([prods, passData]) => {
-        setProducts(prods);
+        setProducts(prods || []);
         setPass(passData);
+        setLoading(false);
+      }).catch(() => {
         setLoading(false);
       });
     }
@@ -33,17 +41,25 @@ export const StoreCatalog: React.FC = () => {
 
   const handleJoinPass = async () => {
     if (pass) {
-      const res = await storeApi.subscribeCommunityPass(pass.id);
-      if (res.success) {
-        setHasSubscribedPass(true);
-        alert('🎉 ₹0 Creator Community Pass activated for 30 days!');
+      try {
+        const res = await storeApi.subscribeCommunityPass(pass.id);
+        if (res.success) {
+          setHasSubscribedPass(true);
+          showToast('🎉 ₹0 Creator Community Pass activated for 30 days!');
+        }
+      } catch (err: any) {
+        showToast(err.message || 'Failed to activate pass');
       }
     }
   };
 
   const handleBuy = async (product: ProductItem) => {
-    const order = await storeApi.placeOrder(product.id, 1);
-    alert(`Order placed successfully for ${product.title}! Order ID: ${order.id}`);
+    try {
+      const order = await storeApi.placeOrder(product.id, 1);
+      showToast(`Order placed for ${product.title}! (ID: ${order.id.slice(0, 8)})`);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to place order');
+    }
   };
 
   return (

@@ -15,23 +15,27 @@ export const AnalyticsDashboard: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      walletApi.getKPIMetrics(),
-      walletApi.getViewsTrend(),
-      walletApi.getTopContent(),
-      walletApi.getWalletSummary(),
-    ]).then(([kpiData, trendData, topData, walletData]) => {
-      setKpis(kpiData);
-      setTrend(trendData);
-      setTopContent(topData);
-      setWallet(walletData);
-      setLoading(false);
-    });
+      walletApi.getKPIMetrics().catch(() => []),
+      walletApi.getViewsTrend().catch(() => []),
+      walletApi.getTopContent().catch(() => []),
+      walletApi.getWalletSummary().catch(() => null),
+    ])
+      .then(([kpiData, trendData, topData, walletData]) => {
+        setKpis(kpiData || []);
+        setTrend(trendData || []);
+        setTopContent(topData || []);
+        setWallet(walletData);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
     return (
-      <div className="py-16 flex justify-center">
-        <div className="w-6 h-6 border-2 border-spreego-violet border-t-transparent rounded-full animate-spin" />
+      <div className="py-16 flex justify-center items-center flex-col space-y-3">
+        <div className="w-8 h-8 border-2 border-spreego-violet border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs text-spreego-text-secondary">Loading analytics metrics...</span>
       </div>
     );
   }

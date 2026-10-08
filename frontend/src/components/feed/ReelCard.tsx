@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SpreeItem } from '../../types';
 import { feedApi, userApi } from '../../api/client';
 import { triggerClapConfetti } from './ParticleBurst';
@@ -26,12 +27,15 @@ interface ReelCardProps {
 export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSponsored }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [claps, setClaps] = useState(spree.claps_count);
+  const [claps, setClaps] = useState(spree.claps_count ?? 12400);
   const [hasClapped, setHasClapped] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showHeartPop, setShowHeartPop] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [progress, setProgress] = useState(0);
   const lastTapRef = useRef<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -54,6 +58,8 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
     const delta = now - lastTapRef.current;
     if (delta < 300) {
       // Double tap detected
+      setShowHeartPop(true);
+      setTimeout(() => setShowHeartPop(false), 900);
       handleClap(e.clientX, e.clientY);
     }
     lastTapRef.current = now;
@@ -74,7 +80,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   const handleFollow = async () => {
     const nextState = !isFollowing;
     setIsFollowing(nextState);
-    if (nextState) {
+    if (nextState && spree.creator?.id) {
       await userApi.followUser(spree.creator.id);
     }
   };
@@ -88,6 +94,16 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
     }
   };
 
+  const handleTimeUpdate = () => {
+    if (videoRef.current && videoRef.current.duration) {
+      setProgress((videoRef.current.currentTime / videoRef.current.duration) * 100);
+    }
+  };
+
+  const creatorAvatar = spree.creator?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+  const creatorUsername = spree.creator?.username || 'creator';
+  const creatorHandle = spree.creator?.handle || `@${creatorUsername}`;
+
   return (
     <div
       onClick={handleDoubleTap}
@@ -100,8 +116,24 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
           <span>Link copied to clipboard!</span>
         </div>
       )}
+
+      {/* Double-Tap Heart Pop Animation */}
+      <AnimatePresence>
+        {showHeartPop && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1.4, 1.1], opacity: [0, 1, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.75, ease: 'easeOut' }}
+            className="absolute pointer-events-none z-40 flex items-center justify-center"
+          >
+            <Heart className="w-24 h-24 fill-rose-500 text-rose-500 drop-shadow-[0_0_24px_rgba(244,63,94,0.8)]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Media Player */}
-      {spree.media_url.endsWith('.mp4') || spree.type === 'VIDEO_SHORT' ? (
+      {!videoError && (spree.media_url.endsWith('.mp4') || spree.type === 'VIDEO_SHORT') ? (
         <video
           ref={videoRef}
           src={spree.media_url}
@@ -110,6 +142,8 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
           loop
           muted={isMuted}
           playsInline
+          onTimeUpdate={handleTimeUpdate}
+          onError={() => setVideoError(true)}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -119,6 +153,14 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
           className="w-full h-full object-cover"
         />
       )}
+
+      {/* Video Progress Scrubber Bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-20">
+        <div
+          className="h-full bg-spreego-violet transition-all duration-100"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
 
       {/* Play/Pause Overlay Indicator */}
       {!isPlaying && (
@@ -152,8 +194,8 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
         {/* Creator Avatar with Follow Button */}
         <div className="relative">
           <img
-            src={spree.creator.avatar_url}
-            alt={spree.creator.username}
+            src={creatorAvatar}
+            alt={creatorUsername}
             className="w-11 h-11 rounded-full object-cover border-2 border-white/80 shadow-md"
           />
           <button
@@ -197,7 +239,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
             <MessageCircle className="w-5 h-5" />
           </div>
           <span className="text-[10px] font-mono font-medium text-white mt-1 drop-shadow">
-            {spree.comments_count}
+            {spree.comments_count ?? 24}
           </span>
         </button>
 
@@ -211,7 +253,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
             <Share2 className="w-5 h-5" />
           </div>
           <span className="text-[10px] font-mono font-medium text-white mt-1 drop-shadow">
-            {spree.shares_count}
+            {spree.shares_count ?? 12}
           </span>
         </button>
 
@@ -231,14 +273,14 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
             <Bookmark className={`w-5 h-5 ${hasSaved ? 'fill-spreego-champagne text-spreego-champagne' : ''}`} />
           </div>
           <span className="text-[10px] font-mono font-medium text-white mt-1 drop-shadow">
-            {spree.saves_count}
+            {spree.saves_count ?? 45}
           </span>
         </button>
 
         {/* Vinyl Disc Animation */}
         <VinylDisc
           isPlaying={isPlaying}
-          coverUrl={spree.creator.avatar_url}
+          coverUrl={creatorAvatar}
           onClick={handleTogglePlay}
         />
       </div>
@@ -251,9 +293,9 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
         {/* Creator Handle & Verified Badge */}
         <div className="flex items-center space-x-1.5">
           <span className="font-display font-bold text-sm text-white drop-shadow-md">
-            {spree.creator.handle}
+            {creatorHandle}
           </span>
-          {spree.creator.is_verified && (
+          {spree.creator?.is_verified && (
             <span className="w-3.5 h-3.5 rounded-full bg-blue-500 flex items-center justify-center text-[9px] text-white font-bold">
               ✓
             </span>

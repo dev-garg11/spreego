@@ -127,9 +127,9 @@ async function safeFetch<T>(
   try {
     return await apiFetch<T>(url, options);
   } catch (err) {
-    // Only use fallback for network/offline or server 500 in demo mode
+    // Fallback for network/offline (0), missing endpoint (404), or server 500 in demo mode
     const apiErr = err as ApiError;
-    if (apiErr.status === 0 || apiErr.status >= 500) {
+    if (apiErr.status === 0 || apiErr.status === 404 || apiErr.status >= 500) {
       console.info(`[SPREEGO API] Fallback used for ${url}:`, apiErr.message);
       return fallbackData;
     }
@@ -142,11 +142,25 @@ async function safeFetch<T>(
 ===================================================================== */
 export const feedApi = {
   async getFeed(subTab: string = 'for_you'): Promise<SpreeItem[]> {
-    return safeFetch<SpreeItem[]>(
+    const raw = await safeFetch<any[]>(
       `${BASE_URL}/sprees/feed?tab=${subTab}`,
       { method: 'GET' },
       mockSprees
     );
+
+    return raw.map((item: any) => ({
+      ...item,
+      creator: item.creator || {
+        id: item.creator_id || 'usr_creator',
+        username: item.creator_username || 'creator',
+        handle: item.creator_username ? `@${item.creator_username}` : `@creator_${(item.creator_id || item.id || 'usr').slice(0, 6)}`,
+        avatar_url: item.creator_avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      },
+      views_count: item.views_count ?? 18400,
+      claps_count: item.claps_count ?? item.clap_count ?? 12400,
+      comments_count: item.comments_count ?? item.comment_count ?? 342,
+      shares_count: item.shares_count ?? item.share_count ?? 189,
+    }));
   },
 
   async getExploreItems(category: string = 'all', query: string = ''): Promise<SpreeItem[]> {
@@ -167,17 +181,31 @@ export const feedApi = {
       items = items.filter(
         (item) =>
           item.title.toLowerCase().includes(q) ||
-          item.creator.username.toLowerCase().includes(q) ||
-          item.creator.handle.toLowerCase().includes(q) ||
+          item.creator?.username?.toLowerCase().includes(q) ||
+          item.creator?.handle?.toLowerCase().includes(q) ||
           (item.tags && item.tags.some((t) => t.toLowerCase().includes(q)))
       );
     }
 
-    return safeFetch<SpreeItem[]>(
+    const raw = await safeFetch<any[]>(
       `${BASE_URL}/sprees?category=${category}&q=${encodeURIComponent(query)}`,
       { method: 'GET' },
       items
     );
+
+    return raw.map((item: any) => ({
+      ...item,
+      creator: item.creator || {
+        id: item.creator_id || 'usr_creator',
+        username: 'creator',
+        handle: `@creator_${(item.creator_id || item.id || 'usr').slice(0, 6)}`,
+        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      },
+      views_count: item.views_count ?? 1420,
+      claps_count: item.claps_count ?? 320,
+      comments_count: item.comments_count ?? 24,
+      shares_count: item.shares_count ?? 12,
+    }));
   },
 
   async getSpreeById(id: string): Promise<SpreeItem | null> {
@@ -460,11 +488,26 @@ export const storeApi = {
     if (category === 'digital') {
       items = items.filter((p) => p.is_digital);
     }
-    return safeFetch<ProductItem[]>(
+    const rawItems = await safeFetch<any[]>(
       `${BASE_URL}/products?category=${category}`,
       { method: 'GET' },
       items
     );
+
+    return rawItems.map((p: any) => ({
+      id: p.id,
+      creator_id: p.creator_id || 'usr_creator_001',
+      title: p.title,
+      description: p.description || '',
+      price_inr: p.price_inr ?? p.price ?? 0,
+      image_url: p.image_url || (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=300',
+      in_stock: p.in_stock ?? p.is_in_stock ?? (p.inventory !== undefined ? p.inventory > 0 : true),
+      inventory_count: p.inventory_count ?? p.inventory ?? 25,
+      is_digital: p.is_digital ?? (p.type === 'DIGITAL'),
+      rating: p.rating ?? 4.9,
+      sales_count: p.sales_count ?? 128,
+      badge: p.badge,
+    }));
   },
 
   async getCommunityPass(): Promise<CommunityPass> {
@@ -521,7 +564,12 @@ export const storeApi = {
 
     return safeFetch<OrderRecord>(
       `${BASE_URL}/orders`,
-      { method: 'POST', body: JSON.stringify({ product_id: productId, quantity }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          items: [{ product_id: productId, quantity }],
+        }),
+      },
       fallback
     );
   },

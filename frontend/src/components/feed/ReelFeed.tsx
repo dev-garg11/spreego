@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SpreeItem, FeedSubTab } from '../../types';
 import { feedApi } from '../../api/client';
+import { useTelemetry } from '../../hooks/useTelemetry';
 import { ReelCard } from './ReelCard';
 import { ChevronUp, ChevronDown, MousePointerClick } from 'lucide-react';
 
@@ -16,6 +17,9 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({ subTab, onExploreSponsored }
   const [direction, setDirection] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [showScrollHint, setShowScrollHint] = useState(true);
+
+  const activeSpree = sprees[currentIndex] || null;
+  useTelemetry(activeSpree?.id || null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);

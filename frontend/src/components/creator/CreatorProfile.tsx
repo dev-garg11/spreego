@@ -3,6 +3,7 @@ import { UserProfile, SpreeItem } from '../../types';
 import { userApi, feedApi } from '../../api/client';
 import { StoreCatalog } from './StoreCatalog';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { useApp } from '../../context/AppContext';
 import {
   Settings,
   Share2,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 export const CreatorProfile: React.FC = () => {
+  const { showToast } = useApp();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [viewMode, setViewMode] = useState<'posts' | 'store' | 'analytics'>('posts');
   const [mediaTab, setMediaTab] = useState<'spree' | 'moments' | 'collage' | 'saved'>('spree');
@@ -21,8 +23,8 @@ export const CreatorProfile: React.FC = () => {
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
-    userApi.getCurrentUser().then((u) => setProfile(u));
-    feedApi.getExploreItems('all', '').then((items) => setUserSprees(items));
+    userApi.getCurrentUser().then((u) => setProfile(u)).catch(() => {});
+    feedApi.getExploreItems('all', '').then((items) => setUserSprees(items)).catch(() => {});
   }, []);
 
   if (!profile) {
@@ -74,7 +76,7 @@ export const CreatorProfile: React.FC = () => {
         </div>
 
         <button
-          onClick={() => alert('Profile settings')}
+          onClick={() => showToast('Creator settings')}
           aria-label="Settings"
           className="p-2 rounded-full hover:bg-spreego-elevated text-spreego-text-secondary hover:text-white transition-colors"
         >
@@ -144,7 +146,11 @@ export const CreatorProfile: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex items-center space-x-2 pt-1">
             <button
-              onClick={() => setIsFollowing(!isFollowing)}
+              onClick={() => {
+                const next = !isFollowing;
+                setIsFollowing(next);
+                showToast(next ? 'Followed creator!' : 'Unfollowed');
+              }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-98 ${
                 isFollowing
                   ? 'bg-spreego-elevated text-white border border-white/10'
@@ -154,7 +160,12 @@ export const CreatorProfile: React.FC = () => {
               {isFollowing ? 'Following' : 'Follow Creator'}
             </button>
             <button
-              onClick={() => alert('Profile URL copied!')}
+              onClick={() => {
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(window.location.href);
+                }
+                showToast('Profile link copied!');
+              }}
               className="p-2 rounded-xl bg-spreego-elevated border border-white/5 text-white hover:bg-white/10 transition-colors"
             >
               <Share2 className="w-4 h-4" />
@@ -199,7 +210,7 @@ export const CreatorProfile: React.FC = () => {
             {userSprees.map((spree) => (
               <div
                 key={spree.id}
-                onClick={() => alert(`Opening reel: ${spree.title}`)}
+                onClick={() => showToast(`Selected: ${spree.title}`)}
                 className="relative aspect-[9/14] bg-spreego-surface rounded-xl overflow-hidden cursor-pointer group border border-white/5 shadow-sm"
               >
                 <img
@@ -211,7 +222,7 @@ export const CreatorProfile: React.FC = () => {
                 <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] font-mono text-white">
                   <span className="flex items-center space-x-0.5">
                     <Play className="w-2.5 h-2.5 fill-white" />
-                    <span>{(spree.views_count / 1000).toFixed(1)}k</span>
+                    <span>{(((spree.views_count || 1200)) / 1000).toFixed(1)}k</span>
                   </span>
                 </div>
               </div>
