@@ -20,7 +20,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onBack,
   customTitle,
 }) => {
-  const { currentTab, soundMuted, toggleSound, showToast, setCurrentTab } = useApp();
+  const { currentTab, soundMuted, toggleSound, setCurrentTab } = useApp();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const handleNotificationClick = () => {

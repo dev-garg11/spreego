@@ -8,7 +8,6 @@ import {
   Send,
   MapPin,
   Clock,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';

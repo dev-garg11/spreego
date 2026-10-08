@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ClubItem } from '../../types';
 import { mockClubs, mockCollageThreads } from '../../api/mockData';
 import { useApp } from '../../context/AppContext';
 import {
   Users,
-  Sparkles,
-  Flame,
   Gift,
   Layers,
-  MessageSquare,
-  Trophy,
   Check,
   Plus,
-  ArrowRight,
 } from 'lucide-react';
 
 export const ClubsFeed: React.FC = () => {
@@ -27,8 +21,6 @@ export const ClubsFeed: React.FC = () => {
   const filteredClubs = clubs.filter((c) =>
     activeCategory === 'All' ? true : c.category.toLowerCase().includes(activeCategory.toLowerCase())
   );
-
-  const currentClub = clubs.find((c) => c.id === activeClubId) || clubs[0];
 
   const handleToggleJoin = (clubId: string) => {
     setClubs((prev) =>

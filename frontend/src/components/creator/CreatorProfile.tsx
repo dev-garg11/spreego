@@ -22,8 +22,6 @@ import {
   ShieldCheck,
   Edit3,
   Users,
-  Flame,
-  Check,
   X,
   ChevronRight,
 } from 'lucide-react';

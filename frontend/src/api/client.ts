@@ -33,6 +33,8 @@ import {
   mockViewsTrend,
   mockTopPerforming,
   mockWalletSummary,
+  mockNotifications,
+  mockClubs,
 } from './mockData';
 
 const BASE_URL = '/api/v1';

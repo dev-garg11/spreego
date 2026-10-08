@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { SpreeItem } from '../../types';
+import { SpreeItem, StoryHighlightItem } from '../../types';
 import { mockSprees, mockStoryCollections } from '../../api/mockData';
 import { ReelCard } from './ReelCard';
 import { StoryViewerModal } from '../creator/StoryViewerModal';
-import { Users, Sparkles, Flame, Plus, Check } from 'lucide-react';
+import { Users, Sparkles, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const FollowingFeed: React.FC = () => {
   const { showToast } = useApp();
-  const [selectedHighlight, setSelectedHighlight] = useState<any>(null);
-  const [followedCreators, setFollowedCreators] = useState([
+  const [selectedHighlight, setSelectedHighlight] = useState<StoryHighlightItem | null>(null);
+  const [activeReelIdx, setActiveReelIdx] = useState(0);
+  const [followedCreators] = useState([
     { id: 'f1', name: 'Maya Crafts', handle: '@maya_art', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', hasUnseenStory: true },
     { id: 'f2', name: 'Foodie Riya', handle: '@foodie_riya', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', hasUnseenStory: true },
     { id: 'f3', name: 'Aarav Fitness', handle: '@aarav_fit', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', hasUnseenStory: false },
     { id: 'f4', name: 'Elena Fit', handle: '@elena_core', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', hasUnseenStory: true },
   ]);
-
-  const [activeReelIdx, setActiveReelIdx] = useState(0);
 
   // Filter sprees to following creators
   const followingSprees: SpreeItem[] = mockSprees.slice(0, 3);
@@ -97,7 +95,11 @@ export const FollowingFeed: React.FC = () => {
       {/* Following Sprees Container */}
       <div className="space-y-4">
         {followingSprees.map((spree, index) => (
-          <div key={spree.id} className="relative rounded-3xl overflow-hidden bg-black border border-white/10 shadow-xl">
+          <div
+            key={spree.id}
+            onClick={() => setActiveReelIdx(index)}
+            className="relative rounded-3xl overflow-hidden bg-black border border-white/10 shadow-xl cursor-pointer"
+          >
             <ReelCard
               spree={spree}
               isActive={activeReelIdx === index}

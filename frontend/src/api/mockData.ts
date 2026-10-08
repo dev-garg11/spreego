@@ -11,7 +11,110 @@ import {
   TrendDataPoint,
   TopPerformingItem,
   WalletSummary,
+  StoryHighlightItem,
 } from '../types';
+
+export const mockStoryCollections: StoryHighlightItem[] = [
+  {
+    id: 'h1',
+    title: 'Highlights',
+    cover_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150',
+    stories: [
+      {
+        id: 's1_1',
+        media_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+        type: 'image' as const,
+        caption: 'Golden sunsets by the coast 🌅',
+        timestamp: '3h ago',
+        location: 'Goa Beaches',
+      },
+      {
+        id: 's1_2',
+        media_url: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800',
+        type: 'image' as const,
+        caption: 'Endless horizon and pure ocean breeze 🌊',
+        timestamp: '5h ago',
+        location: 'Maldives',
+      },
+    ],
+  },
+  {
+    id: 'h2',
+    title: 'Travel',
+    cover_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=150',
+    stories: [
+      {
+        id: 's2_1',
+        media_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800',
+        type: 'image' as const,
+        caption: 'Road tripping across mountain valleys 🏔️',
+        timestamp: '1d ago',
+        location: 'Ladakh Pass',
+      },
+      {
+        id: 's2_2',
+        media_url: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800',
+        type: 'image' as const,
+        caption: 'Whitewashed rooftops of Oia, Santorini ✨',
+        timestamp: '2d ago',
+        location: 'Santorini, Greece',
+      },
+    ],
+  },
+  {
+    id: 'h3',
+    title: 'Food',
+    cover_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=150',
+    stories: [
+      {
+        id: 's3_1',
+        media_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
+        type: 'image' as const,
+        caption: 'Chef special gourmet tasting menu 🍷',
+        timestamp: '2d ago',
+        location: 'Fire & Spice Bistro',
+      },
+      {
+        id: 's3_2',
+        media_url: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=800',
+        type: 'image' as const,
+        caption: 'Crispy sizzling paneer tikka with mint chutney 🧀',
+        timestamp: '3d ago',
+        location: 'Old Delhi Chaat',
+      },
+    ],
+  },
+  {
+    id: 'h4',
+    title: 'Lifestyle',
+    cover_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
+    stories: [
+      {
+        id: 's4_1',
+        media_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800',
+        type: 'image' as const,
+        caption: 'Morning coffee & creative studio flow ☕',
+        timestamp: '4d ago',
+        location: 'Creator Lab',
+      },
+    ],
+  },
+  {
+    id: 'h5',
+    title: 'Q&A',
+    cover_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
+    stories: [
+      {
+        id: 's5_1',
+        media_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800',
+        type: 'image' as const,
+        caption: 'Answer: How do I shoot steady videos? Gimbal + 60fps! 🎥',
+        timestamp: '5d ago',
+        location: 'Ask Me Anything',
+      },
+    ],
+  },
+];
 
 export const mockCurrentUser: UserProfile = {
   id: 'usr_travelwithme_001',
@@ -25,13 +128,7 @@ export const mockCurrentUser: UserProfile = {
   post_count: 248,
   follower_count: 12400,
   following_count: 432,
-  story_highlights: [
-    { id: 'h1', title: 'Highlights', cover_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150&auto=format&fit=crop&q=80' },
-    { id: 'h2', title: 'Travel', cover_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=150&auto=format&fit=crop&q=80' },
-    { id: 'h3', title: 'Food', cover_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=150&auto=format&fit=crop&q=80' },
-    { id: 'h4', title: 'Lifestyle', cover_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80' },
-    { id: 'h5', title: 'Q&A', cover_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80' },
-  ],
+  story_highlights: mockStoryCollections,
 };
 
 export const mockSprees: SpreeItem[] = [
@@ -801,107 +898,6 @@ export const mockClubs = [
   },
 ];
 
-export const mockStoryCollections = [
-  {
-    id: 'h1',
-    title: 'Highlights',
-    cover_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150',
-    stories: [
-      {
-        id: 's1_1',
-        media_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
-        type: 'image' as const,
-        caption: 'Golden sunsets by the coast 🌅',
-        timestamp: '3h ago',
-        location: 'Goa Beaches',
-      },
-      {
-        id: 's1_2',
-        media_url: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800',
-        type: 'image' as const,
-        caption: 'Endless horizon and pure ocean breeze 🌊',
-        timestamp: '5h ago',
-        location: 'Maldives',
-      },
-    ],
-  },
-  {
-    id: 'h2',
-    title: 'Travel',
-    cover_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=150',
-    stories: [
-      {
-        id: 's2_1',
-        media_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800',
-        type: 'image' as const,
-        caption: 'Road tripping across mountain valleys 🏔️',
-        timestamp: '1d ago',
-        location: 'Ladakh Pass',
-      },
-      {
-        id: 's2_2',
-        media_url: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800',
-        type: 'image' as const,
-        caption: 'Whitewashed rooftops of Oia, Santorini ✨',
-        timestamp: '2d ago',
-        location: 'Santorini, Greece',
-      },
-    ],
-  },
-  {
-    id: 'h3',
-    title: 'Food',
-    cover_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=150',
-    stories: [
-      {
-        id: 's3_1',
-        media_url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
-        type: 'image' as const,
-        caption: 'Chef special gourmet tasting menu 🍷',
-        timestamp: '2d ago',
-        location: 'Fire & Spice Bistro',
-      },
-      {
-        id: 's3_2',
-        media_url: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=800',
-        type: 'image' as const,
-        caption: 'Crispy sizzling paneer tikka with mint chutney 🧀',
-        timestamp: '3d ago',
-        location: 'Old Delhi Chaat',
-      },
-    ],
-  },
-  {
-    id: 'h4',
-    title: 'Lifestyle',
-    cover_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
-    stories: [
-      {
-        id: 's4_1',
-        media_url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800',
-        type: 'image' as const,
-        caption: 'Morning coffee & creative studio flow ☕',
-        timestamp: '4d ago',
-        location: 'Creator Lab',
-      },
-    ],
-  },
-  {
-    id: 'h5',
-    title: 'Q&A',
-    cover_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
-    stories: [
-      {
-        id: 's5_1',
-        media_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800',
-        type: 'image' as const,
-        caption: 'Answer: How do I shoot steady videos? Gimbal + 60fps! 🎥',
-        timestamp: '5d ago',
-        location: 'Ask Me Anything',
-      },
-    ],
-  },
-];
 
 export const mockMomentsBook = [
   {
