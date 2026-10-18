@@ -16,16 +16,18 @@ type OtpStep = 'identifier' | 'code';
 type ForgotStep = 'identifier' | 'reset';
 
 const formatCountdown = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+const DEV_LOGIN_IDENTIFIER = import.meta.env.VITE_DEV_LOGIN_IDENTIFIER || '';
+const DEV_LOGIN_PASSWORD = import.meta.env.VITE_DEV_LOGIN_PASSWORD || '';
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthenticated, required = false }) => {
   const [mode, setMode] = useState<AuthMode>('login');
   const [view, setView] = useState<AuthView>('password');
   const [otpStep, setOtpStep] = useState<OtpStep>('identifier');
   const [forgotStep, setForgotStep] = useState<ForgotStep>('identifier');
-  const [identifier, setIdentifier] = useState('');
+  const [identifier, setIdentifier] = useState(DEV_LOGIN_IDENTIFIER);
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(DEV_LOGIN_PASSWORD);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -194,6 +196,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthent
                   {lockSeconds > 0 && <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">Too many attempts. Try again in <strong>{formatCountdown(lockSeconds)}</strong>.</p>}
                   {error && <p className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-200">{error}</p>}
                   {info && <p className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100">{info}</p>}
+                  {import.meta.env.DEV && DEV_LOGIN_IDENTIFIER && DEV_LOGIN_PASSWORD && <p className="rounded-xl border border-violet-300/15 bg-violet-300/10 px-3 py-2 text-[10px] text-violet-100">Local developer account is prefilled for this environment.</p>}
                   <button type="submit" disabled={loading || lockSeconds > 0} className="auth-primary-btn tactile-btn">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}<span>{mode === 'login' ? 'Enter SPREEGO' : 'Create my profile'}</span></button>
                   {mode === 'login' && <div className="flex items-center justify-between text-[10px]"><button type="button" onClick={() => { setView('forgot'); resetFeedback(); }} className="tactile-btn text-violet-300 hover:text-white">Forgot password?</button><button type="button" onClick={() => { setView('otp'); setOtpStep('identifier'); resetFeedback(); }} className="tactile-btn text-slate-500 hover:text-white">Use OTP instead</button></div>}
                   <p className="flex items-center justify-center gap-1.5 pt-1 text-[10px] text-slate-500"><ShieldCheck className="h-3 w-3" /> Passwords are encrypted before storage</p>
