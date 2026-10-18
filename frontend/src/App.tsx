@@ -10,6 +10,7 @@ import { SpreeExplore } from './components/spree/SpreeExplore';
 import { UploadSheetModal } from './components/upload/UploadSheetModal';
 import { OpensOverview } from './components/opens/OpensOverview';
 import { CreatorProfile } from './components/creator/CreatorProfile';
+import { NotificationPage } from './components/shell/NotificationPage';
 import { Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,18 +27,31 @@ const MainAppContent: React.FC = () => {
 
       {/* Screen Router Container */}
       <main className={`relative z-10 flex-1 flex flex-col ${currentTab === 'home' ? 'pt-14 pb-20 px-0' : 'pt-14 pb-20 px-3'}`}>
-        {currentTab === 'home' && (
-          <ReelFeed
-            subTab={activeSubTab}
-            onExploreSponsored={() => setCurrentTab('opens')}
-          />
-        )}
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={currentTab}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {currentTab === 'home' && (
+              <ReelFeed
+                subTab={activeSubTab}
+                onExploreSponsored={() => setCurrentTab('opens')}
+              />
+            )}
 
-        {currentTab === 'spree' && <SpreeExplore />}
+            {currentTab === 'spree' && <SpreeExplore />}
 
-        {currentTab === 'opens' && <OpensOverview />}
+            {currentTab === 'opens' && <OpensOverview />}
 
-        {currentTab === 'profile' && <CreatorProfile />}
+            {currentTab === 'profile' && <CreatorProfile />}
+
+            {currentTab === 'notifications' && <NotificationPage />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Creation Modal Bottom Sheet */}
@@ -56,10 +70,26 @@ const MainAppContent: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 left-4 right-4 z-50 max-w-md mx-auto bg-spreego-elevated/95 backdrop-blur-md border border-white/10 text-white text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-2"
+            role="status"
+            className="fixed bottom-24 left-4 right-4 z-50 mx-auto flex max-w-md items-center gap-3 overflow-hidden rounded-2xl border border-spreego-violet/30 bg-[#151321]/95 px-4 py-3 text-xs text-white shadow-[0_16px_50px_rgba(0,0,0,.4)] backdrop-blur-xl"
           >
-            <Sparkles className="w-4 h-4 text-spreego-violet-light flex-shrink-0" />
-            <span className="truncate">{toastMessage}</span>
+            <motion.div
+              initial={{ rotate: -20, scale: 0.7 }}
+              animate={{ rotate: 0, scale: 1 }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-spreego-violet to-spreego-violet-light shadow-lg shadow-spreego-violet/30"
+            >
+              <Sparkles className="h-4 w-4 text-white" />
+            </motion.div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] font-bold uppercase tracking-[.18em] text-spreego-champagne">SPREEGO update</p>
+              <span className="block truncate text-[11px] font-medium text-slate-100">{toastMessage}</span>
+            </div>
+            <motion.div
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: 3, ease: 'linear' }}
+              className="absolute bottom-0 left-0 h-0.5 w-full origin-left bg-gradient-to-r from-spreego-violet-light to-spreego-champagne"
+            />
           </motion.div>
         )}
       </AnimatePresence>

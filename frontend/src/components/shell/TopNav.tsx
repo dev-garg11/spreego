@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Bell, Search, Zap, Volume2, VolumeX, ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FeedSubTab } from '../../types';
-import { NotificationDrawer } from './NotificationDrawer';
 import { AuthModal } from './AuthModal';
 import { authApi, getAuthToken } from '../../api/client';
 
@@ -22,8 +21,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onBack,
   customTitle,
 }) => {
-  const { currentTab, soundMuted, toggleSound, setCurrentTab } = useApp();
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const { currentTab, soundMuted, toggleSound, setCurrentTab, showToast } = useApp();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAuthToken()));
 
@@ -33,9 +31,7 @@ export const TopNav: React.FC<TopNavProps> = ({
     return () => window.removeEventListener('spreego-auth-changed', syncAuthState);
   }, []);
 
-  const handleNotificationClick = () => {
-    setIsNotificationOpen(true);
-  };
+  const handleNotificationClick = () => setCurrentTab('notifications');
 
   const handleSearchClick = () => {
     setCurrentTab('spree');
@@ -46,9 +42,9 @@ export const TopNav: React.FC<TopNavProps> = ({
       <div className="flex items-center justify-between">
         {/* Left: Brand Monogram or Back Arrow */}
         <div className="flex items-center space-x-2">
-          {showBack ? (
+          {showBack || currentTab === 'notifications' ? (
             <button
-              onClick={onBack}
+              onClick={onBack || (() => setCurrentTab('home'))}
               aria-label="Back"
               className="p-1.5 rounded-full hover:bg-spreego-elevated active:scale-95 text-spreego-text-primary transition-all"
             >
@@ -105,15 +101,15 @@ export const TopNav: React.FC<TopNavProps> = ({
               })}
             </div>
           ) : (
-            <span className="font-display font-semibold text-sm text-spreego-text-primary capitalize">
-              {currentTab}
+            <span className="font-display font-semibold text-sm text-spreego-text-primary">
+              {currentTab === 'notifications' ? 'Notification Center' : currentTab}
             </span>
           )}
         </div>
 
         {/* Right: Actions (Sound, Search, Notification) */}
         <div className="flex items-center space-x-1.5">
-          <button
+          <motion.button
             onClick={async () => {
               if (isAuthenticated) {
                 try {
@@ -126,14 +122,19 @@ export const TopNav: React.FC<TopNavProps> = ({
               }
             }}
             aria-label={isAuthenticated ? 'Log out' : 'Log in'}
+            whileTap={{ scale: 0.94 }}
             className={`rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition ${isAuthenticated ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-spreego-text-secondary hover:bg-white/10 hover:text-white'}`}
           >
             {isAuthenticated ? 'Log out' : 'Log in'}
-          </button>
+          </motion.button>
           {currentTab === 'home' && (
-            <button
-              onClick={toggleSound}
+            <motion.button
+              onClick={() => {
+                toggleSound();
+                showToast(soundMuted ? 'Audio is back on 🔊' : 'Audio muted for a calmer scroll');
+              }}
               aria-label={soundMuted ? 'Unmute Audio' : 'Mute Audio'}
+              whileTap={{ scale: 0.88, rotate: -8 }}
               className="p-2 rounded-full hover:bg-spreego-elevated active:scale-90 text-spreego-text-secondary hover:text-spreego-text-primary transition-all"
             >
               {soundMuted ? (
@@ -141,34 +142,32 @@ export const TopNav: React.FC<TopNavProps> = ({
               ) : (
                 <Volume2 className="w-4 h-4 text-spreego-text-primary" />
               )}
-            </button>
+            </motion.button>
           )}
 
-          <button
+          <motion.button
             onClick={handleSearchClick}
             aria-label="Search"
+            whileHover={{ y: -2, rotate: -4 }}
+            whileTap={{ scale: 0.88 }}
             className="p-2 rounded-full hover:bg-spreego-elevated active:scale-90 text-spreego-text-secondary hover:text-spreego-text-primary transition-all"
           >
             <Search className="w-4 h-4" />
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
             onClick={handleNotificationClick}
             aria-label="Notifications"
+            whileHover={{ y: -2, rotate: 5 }}
+            whileTap={{ scale: 0.88 }}
             className="relative p-2 rounded-full hover:bg-spreego-elevated active:scale-90 text-spreego-text-secondary hover:text-spreego-text-primary transition-all"
           >
             <Bell className="w-4 h-4" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-spreego-violet animate-pulse" />
-          </button>
+          </motion.button>
         </div>
       </div>
 
-      {/* Full Notification Center Drawer */}
-      <NotificationDrawer
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-        onActionClick={() => setIsNotificationOpen(false)}
-      />
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}

@@ -79,6 +79,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
     try {
       const response = await feedApi.clapSpree(spree.id);
       if (typeof response.newCount === 'number') setClaps(response.newCount);
+      showToast('Clapped! You just added good energy ✨');
     } catch (error) {
       setClaps((prev) => Math.max(0, prev - 1));
       setHasClapped(false);
@@ -97,6 +98,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
       } else {
         await feedApi.unsaveSpree(spree.id);
       }
+      showToast(nextSaved ? 'Saved to your collection 🔖' : 'Removed from your collection');
     } catch (error) {
       setHasSaved(!nextSaved);
       showToast(error instanceof Error ? error.message : 'Unable to update saved state');
@@ -113,6 +115,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
       } else {
         await userApi.unfollowUser(spree.creator.id);
       }
+      showToast(nextState ? `Following ${creatorHandle}` : `Unfollowed ${creatorHandle}`);
     } catch (error) {
       setIsFollowing(!nextState);
       showToast(error instanceof Error ? error.message : 'Unable to update follow state');
@@ -126,6 +129,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
         await navigator.clipboard.writeText(res.shareUrl);
         setCopiedLink(true);
         setTimeout(() => setCopiedLink(false), 2200);
+        showToast('Share link copied — send the vibe 🚀');
       }
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Unable to share this spree');
@@ -293,6 +297,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
           onClick={() => {
             setHasBuzzed(true);
             triggerClapConfetti();
+            showToast('Buzzer boost activated — 2× reach is live 🔥');
           }}
           aria-label="Buzzer Boost"
           className="flex flex-col items-center group active:scale-90 transition-transform"

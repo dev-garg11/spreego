@@ -4,7 +4,7 @@ export * from './open';
 export * from './store';
 export * from './wallet';
 
-export type ShellTab = 'home' | 'spree' | 'upload' | 'opens' | 'profile';
+export type ShellTab = 'home' | 'spree' | 'upload' | 'opens' | 'profile' | 'notifications';
 
 export interface ConsentState {
   hasAccepted: boolean;

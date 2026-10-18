@@ -134,9 +134,30 @@ const ForYouReelFeed: React.FC<Omit<ReelFeedProps, 'subTab'>> = ({ onExploreSpon
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center space-y-3 min-h-[70vh]">
-        <div className="w-8 h-8 rounded-full border-2 border-spreego-violet border-t-transparent animate-spin" />
-        <span className="text-xs text-spreego-text-secondary">Loading Sprees...</span>
+      <div className="relative flex min-h-[70vh] flex-1 items-center justify-center overflow-hidden px-3">
+        <motion.div
+          aria-hidden="true"
+          className="absolute h-64 w-64 rounded-full bg-spreego-violet/15 blur-3xl"
+          animate={{ scale: [1, 1.25, 1], opacity: [0.35, 0.7, 0.35] }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-white/10 bg-gradient-to-b from-spreego-surface to-black/40 p-5 shadow-2xl shadow-black/30">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 animate-pulse rounded-2xl bg-white/10" />
+            <div className="flex-1 space-y-2">
+              <div className="h-2.5 w-1/3 animate-pulse rounded-full bg-white/15" />
+              <div className="h-2 w-1/2 animate-pulse rounded-full bg-white/10" />
+            </div>
+            <div className="h-8 w-8 rounded-full border-2 border-spreego-violet border-t-transparent animate-spin" />
+          </div>
+          <div className="mt-6 h-72 animate-pulse rounded-2xl bg-gradient-to-br from-white/10 via-spreego-violet/10 to-white/5" />
+          <div className="mt-5 space-y-2">
+            <div className="h-3 w-2/3 animate-pulse rounded-full bg-white/15" />
+            <div className="h-2.5 w-full animate-pulse rounded-full bg-white/10" />
+            <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-white/10" />
+          </div>
+          <p className="mt-5 text-center text-xs font-medium text-spreego-text-secondary">Finding your next spree…</p>
+        </div>
       </div>
     );
   }
@@ -180,6 +201,16 @@ const ForYouReelFeed: React.FC<Omit<ReelFeedProps, 'subTab'>> = ({ onExploreSpon
       aria-label="Reels feed viewer"
       className="relative w-full flex-1 flex flex-col items-center justify-center outline-none select-none overflow-hidden"
     >
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.35 }}
+        className="pointer-events-none absolute left-4 top-3 z-30 flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.16em] text-white/80 backdrop-blur-xl"
+      >
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-spreego-champagne shadow-[0_0_8px_rgba(245,208,97,.9)]" />
+        Daily pulse
+      </motion.div>
+
       {/* Kinetic Animated Active Reel */}
       <AnimatePresence mode="popLayout" custom={direction}>
         <motion.div
