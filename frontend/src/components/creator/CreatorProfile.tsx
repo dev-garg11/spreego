@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, SpreeItem, StoryHighlightItem } from '../../types';
-import { userApi, feedApi } from '../../api/client';
+import { ApiError, clearAuthSession, getAuthToken, userApi, feedApi } from '../../api/client';
 import { mockStoryCollections, mockMomentsBook, mockCollageThreads } from '../../api/mockData';
 import { StoreCatalog } from './StoreCatalog';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
@@ -31,6 +31,7 @@ export const CreatorProfile: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [viewMode, setViewMode] = useState<'posts' | 'store' | 'analytics'>('posts');
   const [mediaTab, setMediaTab] = useState<'spree' | 'moments' | 'collage' | 'saved'>('spree');
   const [userSprees, setUserSprees] = useState<SpreeItem[]>([]);
@@ -50,7 +51,7 @@ export const CreatorProfile: React.FC = () => {
   useEffect(() => {
     let active = true;
     const loadProfile = async () => {
-      if (!isAuthenticated && import.meta.env.MODE !== 'test') {
+      if ((!isAuthenticated || !getAuthToken()) && import.meta.env.MODE !== 'test') {
         setIsLoading(false);
         return;
       }
@@ -63,13 +64,25 @@ export const CreatorProfile: React.FC = () => {
         setEditName(u.display_name);
         setEditBio(u.bio || '');
         setEditLocation(u.location || 'Bangalore, India');
-        const items = await feedApi.getCreatorSprees(u.id);
-        if (active) setUserSprees(items);
-      } catch {
+        // Keep the profile usable even when the optional creator feed endpoint is unavailable.
+        try {
+          const items = await feedApi.getCreatorSprees(u.id);
+          if (active) setUserSprees(items);
+        } catch {
+          if (active) setUserSprees([]);
+        }
+      } catch (error) {
         if (active) {
           setProfile(null);
           setUserSprees([]);
-          setLoadError('We could not load your profile right now.');
+          if (error instanceof ApiError && error.status === 401) {
+            clearAuthSession();
+            setLoadError('Your session expired. Please log in again.');
+          } else if (error instanceof ApiError && error.status === 0) {
+            setLoadError('The backend is not reachable. Start the API server and retry.');
+          } else {
+            setLoadError(error instanceof Error ? error.message : 'We could not load your profile right now.');
+          }
         }
       } finally {
         if (active) setIsLoading(false);
@@ -82,7 +95,7 @@ export const CreatorProfile: React.FC = () => {
       active = false;
       window.removeEventListener('spreego-auth-changed', handleAuthChanged);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, retryNonce]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +124,7 @@ export const CreatorProfile: React.FC = () => {
           <h2 className="mt-5 font-display text-lg font-bold text-white">{isLoading ? 'Opening your profile…' : isAuthenticated ? 'Profile is resting' : 'Your profile is private'}</h2>
           <p className="mt-2 text-xs leading-relaxed text-spreego-text-secondary">{isLoading ? 'Loading your creator space and posts.' : loadError || 'Log in to see your posts, store, analytics, and saved moments.'}</p>
           {!isLoading && !isAuthenticated && <button type="button" onClick={requestAuth} className="auth-primary-btn tactile-btn mt-5">Log in to continue</button>}
+          {!isLoading && isAuthenticated && loadError && <button type="button" onClick={() => setRetryNonce((value) => value + 1)} className="auth-primary-btn tactile-btn mt-5">Retry loading</button>}
         </div>
       </motion.div>
     );

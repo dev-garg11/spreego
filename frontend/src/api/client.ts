@@ -67,6 +67,16 @@ export function setAuthToken(token: string): void {
   }
 }
 
+export function clearAuthSession(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem('spreego_token');
+    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  } finally {
+    window.dispatchEvent(new Event('spreego-auth-changed'));
+  }
+}
+
 const REFRESH_TOKEN_KEY = 'spreego_refresh_token';
 
 export const authApi = {
