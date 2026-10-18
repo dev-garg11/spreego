@@ -218,6 +218,16 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(4,5,10,.52),transparent_24%,transparent_55%,rgba(4,5,10,.92))]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_30%,rgba(124,58,237,.16),transparent_32%)]" />
 
+      {isActive && (
+        <motion.div
+          aria-hidden="true"
+          initial={{ x: '-140%', opacity: 0 }}
+          animate={{ x: ['-140%', '180%'], opacity: [0, 0.24, 0] }}
+          transition={{ duration: 4.8, repeat: Infinity, repeatDelay: 3.5, ease: 'easeInOut' }}
+          className="pointer-events-none absolute inset-y-0 -left-1/2 z-10 w-1/3 -skew-x-[18deg] bg-gradient-to-r from-transparent via-white/30 to-transparent blur-2xl"
+        />
+      )}
+
       {/* Video Progress Scrubber Bar */}
       <div className="absolute bottom-0 left-0 right-0 z-20 h-1 bg-white/20">
         <div
