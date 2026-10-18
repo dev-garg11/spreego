@@ -16,16 +16,24 @@ export const SpreeExplore: React.FC = () => {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    feedApi.getExploreItems(category, query).then((res) => {
-      if (active) {
-        setItems(res);
-        setLoading(false);
-      }
-    });
+    const timer = window.setTimeout(() => {
+      feedApi.getExploreItems(category, query, subTab).then((res) => {
+        if (active) {
+          setItems(res);
+          setLoading(false);
+        }
+      }).catch(() => {
+        if (active) {
+          setItems([]);
+          setLoading(false);
+        }
+      });
+    }, 250);
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
-  }, [category, query]);
+  }, [category, query, subTab]);
 
   const categories: { id: CategoryFilterChip; label: string }[] = [
     { id: 'all', label: 'All' },

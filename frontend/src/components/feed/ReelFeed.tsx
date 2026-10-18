@@ -23,6 +23,10 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({ subTab, onExploreSponsored }
     return <ClubsFeed />;
   }
 
+  return <ForYouReelFeed onExploreSponsored={onExploreSponsored} />;
+};
+
+const ForYouReelFeed: React.FC<Omit<ReelFeedProps, 'subTab'>> = ({ onExploreSponsored }) => {
   const [sprees, setSprees] = useState<SpreeItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<number>(1);
@@ -39,7 +43,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({ subTab, onExploreSponsored }
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    feedApi.getFeed(subTab).then((items) => {
+    feedApi.getFeed('for_you').then((items) => {
       if (mounted) {
         setSprees(items);
         setCurrentIndex(0);
@@ -51,7 +55,7 @@ export const ReelFeed: React.FC<ReelFeedProps> = ({ subTab, onExploreSponsored }
     return () => {
       mounted = false;
     };
-  }, [subTab]);
+  }, []);
 
   const handleNext = useCallback(() => {
     if (currentIndex < sprees.length - 1) {

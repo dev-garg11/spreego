@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SpreeItem, StoryHighlightItem } from '../../types';
-import { mockSprees, mockStoryCollections } from '../../api/mockData';
+import { mockStoryCollections } from '../../api/mockData';
 import { ReelCard } from './ReelCard';
 import { StoryViewerModal } from '../creator/StoryViewerModal';
 import { Users, Sparkles, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { feedApi } from '../../api/client';
 
 export const FollowingFeed: React.FC = () => {
   const { showToast } = useApp();
@@ -17,8 +18,25 @@ export const FollowingFeed: React.FC = () => {
     { id: 'f4', name: 'Elena Fit', handle: '@elena_core', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', hasUnseenStory: true },
   ]);
 
-  // Filter sprees to following creators
-  const followingSprees: SpreeItem[] = mockSprees.slice(0, 3);
+  const [followingSprees, setFollowingSprees] = useState<SpreeItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    feedApi.getFeed('following')
+      .then((items) => {
+        if (mounted) setFollowingSprees(items);
+      })
+      .catch(() => {
+        if (mounted) setFollowingSprees([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleOpenStory = (creatorIdx: number) => {
     const highlight = mockStoryCollections[creatorIdx % mockStoryCollections.length];
@@ -94,6 +112,14 @@ export const FollowingFeed: React.FC = () => {
 
       {/* Following Sprees Container */}
       <div className="space-y-4">
+        {loading && (
+          <div className="py-10 text-center text-xs text-spreego-text-secondary">Loading followed creators...</div>
+        )}
+        {!loading && followingSprees.length === 0 && (
+          <div className="py-10 text-center text-xs text-spreego-text-secondary">
+            Follow creators to see their latest sprees here.
+          </div>
+        )}
         {followingSprees.map((spree, index) => (
           <div
             key={spree.id}

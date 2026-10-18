@@ -1,7 +1,6 @@
 import os
 import re
 import uuid
-import shutil
 from typing import Tuple, BinaryIO, Union, Any
 from src.config.settings import settings
 
@@ -28,8 +27,9 @@ class StorageService:
 
     def get_absolute_path(self, relative_path: str) -> str:
         clean_rel = os.path.normpath(relative_path).lstrip(r"\\/")
-        abs_path = os.path.abspath(os.path.join(self.base_upload_dir, clean_rel))
-        if not abs_path.startswith(self.base_upload_dir):
+        base_path = os.path.realpath(self.base_upload_dir)
+        abs_path = os.path.realpath(os.path.join(base_path, clean_rel))
+        if os.path.commonpath([base_path, abs_path]) != base_path:
             raise ValueError("Invalid storage path: attempted path traversal")
         return abs_path
 
@@ -51,15 +51,30 @@ class StorageService:
         underlying_file = getattr(file, "file", file)
 
         if isinstance(file, (bytes, bytearray)):
+            max_size = settings.MAX_VIDEO_SIZE_BYTES if purpose == "spree_video" else settings.MAX_IMAGE_SIZE_BYTES
+            if len(file) > max_size:
+                raise ValueError("Uploaded file exceeds the configured size limit.")
             with open(abs_path, "wb") as buffer:
                 buffer.write(file)
             size = len(file)
         elif hasattr(underlying_file, "read"):
             if hasattr(underlying_file, "seek"):
                 underlying_file.seek(0)
-            with open(abs_path, "wb") as buffer:
-                shutil.copyfileobj(underlying_file, buffer)
-            size = os.path.getsize(abs_path)
+            max_size = settings.MAX_VIDEO_SIZE_BYTES if purpose == "spree_video" else settings.MAX_IMAGE_SIZE_BYTES
+            size = 0
+            try:
+                with open(abs_path, "wb") as buffer:
+                    while True:
+                        chunk = underlying_file.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        if size > max_size:
+                            raise ValueError("Uploaded file exceeds the configured size limit.")
+                        buffer.write(chunk)
+            except Exception:
+                self.delete_file(rel_path)
+                raise
         else:
             raise TypeError(f"Unsupported file type for save_file: {type(file)}")
 

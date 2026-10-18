@@ -301,6 +301,7 @@ class FeedRankingService:
         skip: int = 0,
         limit: int = 20,
         now: Optional[datetime] = None,
+        feed_tab: str = "for_you",
     ) -> List[FeedSpreeResponse]:
         skip = max(0, skip)
         limit = max(1, limit)
@@ -325,14 +326,18 @@ class FeedRankingService:
         if spree_type is not None:
             query = query.filter(Spree.type == spree_type)
 
-        if requesting_user is None:
-            query = query.filter(Spree.visibility == SpreeVisibility.PUBLIC)
-        else:
+        normalized_tab = feed_tab.strip().lower()
+        follow_subquery = None
+        if requesting_user is not None:
             follow_subquery = (
                 self.db.query(Follow.following_id)
                 .filter(Follow.follower_id == requesting_user.id)
                 .scalar_subquery()
             )
+
+        if requesting_user is None:
+            query = query.filter(Spree.visibility == SpreeVisibility.PUBLIC)
+        else:
             query = query.filter(
                 or_(
                     Spree.visibility == SpreeVisibility.PUBLIC,
@@ -345,6 +350,11 @@ class FeedRankingService:
                     ),
                 )
             )
+
+        if normalized_tab == "following":
+            if requesting_user is None or follow_subquery is None:
+                return []
+            query = query.filter(Spree.creator_id.in_(follow_subquery))
 
         # Candidate window ordering and limit
         query = query.order_by(Spree.created_at.desc(), Spree.id.desc())

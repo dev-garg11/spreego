@@ -26,6 +26,7 @@ router = APIRouter(prefix="/api/v1/sprees", tags=["Feed"])
 )
 def get_feed(
     type: Optional[SpreeType] = Query(None, description="Optional filter by Spree type"),
+    tab: str = Query("for_you", pattern="^(for_you|following|clubs)$", description="Feed tab"),
     page: Optional[int] = Query(None, ge=1, le=10_000, description="Page number (1-indexed)"),
     skip: Optional[int] = Query(None, ge=0, le=100_000, description="Number of items to skip"),
     limit: int = Query(20, ge=1, le=100, description="Maximum items to return"),
@@ -73,5 +74,6 @@ def get_feed(
         spree_type=type,
         skip=offset,
         limit=limit,
+        tab=tab,
         db=db,
     )

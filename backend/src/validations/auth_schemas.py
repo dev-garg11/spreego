@@ -1,6 +1,7 @@
 from datetime import datetime
+import re
 from typing import Any, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class BaseSchema(BaseModel):
@@ -27,6 +28,28 @@ class VerifyOTPRequest(BaseSchema):
     email: Optional[str] = Field(None, description="User email address")
     identifier: Optional[str] = Field(None, description="General contact identifier")
     otp_code: str = Field(..., min_length=4, max_length=10, description="4-10 digit OTP code")
+    full_name: Optional[str] = Field(None, min_length=2, max_length=128, description="Display name for new registrations")
+    username: Optional[str] = Field(None, min_length=3, max_length=64, description="Unique username for new registrations")
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("Full name must contain at least 2 characters.")
+        return value
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip().lstrip("@").lower()
+        if not re.fullmatch(r"[a-z0-9_\.]{3,64}", value):
+            raise ValueError("Username may contain only lowercase letters, numbers, underscores, and dots.")
+        return value
 
     def get_target_identifier(self) -> str:
         for val in (self.identifier, self.phone_number, self.email):

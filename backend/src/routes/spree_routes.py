@@ -51,14 +51,27 @@ def create_spree(
 )
 def list_sprees(
     type: Optional[SpreeType] = Query(None, description="Filter by Spree type"),
+    q: Optional[str] = Query(None, max_length=100, description="Search title or description"),
+    tab: str = Query("for_you", pattern="^(for_you|trending|following)$", description="Discovery tab"),
+    creator_id: Optional[str] = Query(None, description="Filter by creator"),
     page: Optional[int] = Query(None, ge=1, description="Page number (1-indexed)"),
     skip: Optional[int] = Query(None, ge=0, description="Number of records to skip"),
     limit: int = Query(20, ge=1, le=100, description="Maximum records to return"),
+    requesting_user: Optional[User] = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ) -> List[SpreeResponse]:
     """Paginated list of public sprees with optional filter by content type."""
     offset = (page - 1) * limit if page is not None else (skip if skip is not None else 0)
-    return SpreeController.list_public_sprees(spree_type=type, skip=offset, limit=limit, db=db)
+    return SpreeController.list_public_sprees(
+        spree_type=type,
+        skip=offset,
+        limit=limit,
+        search=q,
+        tab=tab,
+        requesting_user=requesting_user,
+        creator_id=creator_id,
+        db=db,
+    )
 
 
 @router.get(

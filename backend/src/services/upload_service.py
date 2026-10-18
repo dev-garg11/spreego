@@ -123,10 +123,35 @@ class UploadService:
         if hasattr(underlying_file, "seek"):
             underlying_file.seek(0)
 
-        with open(abs_path, "wb") as buffer:
-            shutil.copyfileobj(underlying_file, buffer)
+        max_size = (
+            settings.MAX_VIDEO_SIZE_BYTES
+            if upload.purpose == UploadPurpose.SPREE_VIDEO.value
+            else settings.MAX_IMAGE_SIZE_BYTES
+        )
+        actual_size = 0
+        try:
+            with open(abs_path, "wb") as buffer:
+                while True:
+                    chunk = underlying_file.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    actual_size += len(chunk)
+                    if actual_size > max_size:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Uploaded file exceeds the configured size limit.",
+                        )
+                    buffer.write(chunk)
+        except Exception:
+            self.storage_service.delete_file(upload.storage_path)
+            raise
 
-        actual_size = os.path.getsize(abs_path)
+        if actual_size <= 0:
+            self.storage_service.delete_file(upload.storage_path)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file cannot be empty.",
+            )
 
         if upload.purpose == UploadPurpose.SPREE_VIDEO.value:
             if actual_size > settings.MAX_VIDEO_SIZE_BYTES:
@@ -172,11 +197,14 @@ class UploadService:
             file_size=1,
         )
 
-        storage_path, media_url, actual_size = self.storage_service.save_file(
-            file=file,
-            purpose=purpose.value,
-            original_filename=filename,
-        )
+        try:
+            storage_path, media_url, actual_size = self.storage_service.save_file(
+                file=file,
+                purpose=purpose.value,
+                original_filename=filename,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
         if purpose == UploadPurpose.SPREE_VIDEO:
             if actual_size > settings.MAX_VIDEO_SIZE_BYTES:
@@ -192,6 +220,13 @@ class UploadService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Uploaded file exceeds image size limit.",
                 )
+
+        if actual_size <= 0:
+            self.storage_service.delete_file(storage_path)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file cannot be empty.",
+            )
 
         upload = self.upload_repo.create_upload(
             user_id=user_id,

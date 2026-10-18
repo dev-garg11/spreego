@@ -46,26 +46,47 @@ export const CreatorProfile: React.FC = () => {
   const [activeMomentPage, setActiveMomentPage] = useState(0);
 
   useEffect(() => {
-    userApi.getCurrentUser().then((u) => {
-      setProfile(u);
-      setEditName(u.display_name);
-      setEditBio(u.bio || '');
-      setEditLocation(u.location || 'Bangalore, India');
-    }).catch(() => {});
-    feedApi.getExploreItems('all', '').then((items) => setUserSprees(items)).catch(() => {});
+    let active = true;
+    const loadProfile = async () => {
+      try {
+        const u = await userApi.getCurrentUser();
+        if (!active) return;
+        setProfile(u);
+        setEditName(u.display_name);
+        setEditBio(u.bio || '');
+        setEditLocation(u.location || 'Bangalore, India');
+        const items = await feedApi.getCreatorSprees(u.id);
+        if (active) setUserSprees(items);
+      } catch {
+        if (active) {
+          setProfile(null);
+          setUserSprees([]);
+        }
+      }
+    };
+    loadProfile();
+    const handleAuthChanged = () => loadProfile();
+    window.addEventListener('spreego-auth-changed', handleAuthChanged);
+    return () => {
+      active = false;
+      window.removeEventListener('spreego-auth-changed', handleAuthChanged);
+    };
   }, []);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (profile) {
-      setProfile({
-        ...profile,
-        display_name: editName,
-        bio: editBio,
-        location: editLocation,
-      });
-      setIsEditProfileOpen(false);
-      showToast('Profile updated successfully! ✨');
+      try {
+        const updated = await userApi.updateCurrentUser({
+          display_name: editName.trim(),
+          bio: editBio.trim(),
+        });
+        setProfile({ ...profile, ...updated, location: editLocation.trim() });
+        setIsEditProfileOpen(false);
+        showToast('Profile updated successfully! ✨');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Unable to update profile');
+      }
     }
   };
 
@@ -218,10 +239,20 @@ export const CreatorProfile: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex items-center space-x-2 pt-1">
             <button
-              onClick={() => {
+              onClick={async () => {
                 const next = !isFollowing;
                 setIsFollowing(next);
-                showToast(next ? 'Followed creator!' : 'Unfollowed');
+                try {
+                  if (next) {
+                    await userApi.followUser(profile.id);
+                  } else {
+                    await userApi.unfollowUser(profile.id);
+                  }
+                  showToast(next ? 'Followed creator!' : 'Unfollowed');
+                } catch (error) {
+                  setIsFollowing(!next);
+                  showToast(error instanceof Error ? error.message : 'Unable to update follow state');
+                }
               }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-98 ${
                 isFollowing

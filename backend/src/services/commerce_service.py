@@ -185,7 +185,12 @@ class CommerceService:
             if item.quantity < 1:
                 raise ValueError("Item quantity must be at least 1.")
 
-            product = self.product_repo.get_by_id(item.product_id)
+            product = (
+                self.db.query(Product)
+                .filter(Product.id == item.product_id)
+                .with_for_update()
+                .first()
+            )
             if not product:
                 raise LookupError(f"Product '{item.product_id}' not found.")
             if not product.is_active:

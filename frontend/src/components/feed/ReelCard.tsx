@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SpreeItem } from '../../types';
 import { feedApi, userApi } from '../../api/client';
 import { triggerClapConfetti } from './ParticleBurst';
 import { VinylDisc } from './VinylDisc';
 import { CommentDrawer } from './CommentDrawer';
+import { useApp } from '../../context/AppContext';
 import {
   Heart,
   MessageCircle,
@@ -26,6 +27,7 @@ interface ReelCardProps {
 }
 
 export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSponsored }) => {
+  const { soundMuted, showToast } = useApp();
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [claps, setClaps] = useState(spree.claps_count ?? 12400);
@@ -39,6 +41,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   const [videoError, setVideoError] = useState(false);
   const [progress, setProgress] = useState(0);
   const lastTapRef = useRef<number>(0);
+  const clapInFlightRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleTogglePlay = () => {
@@ -68,31 +71,64 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   };
 
   const handleClap = async (clientX?: number, clientY?: number) => {
+    if (hasClapped || clapInFlightRef.current) return;
+    clapInFlightRef.current = true;
     triggerClapConfetti(clientX, clientY);
     setClaps((prev) => prev + 1);
     setHasClapped(true);
-    await feedApi.clapSpree(spree.id);
+    try {
+      const response = await feedApi.clapSpree(spree.id);
+      if (typeof response.newCount === 'number') setClaps(response.newCount);
+    } catch (error) {
+      setClaps((prev) => Math.max(0, prev - 1));
+      setHasClapped(false);
+      showToast(error instanceof Error ? error.message : 'Unable to clap this spree');
+    } finally {
+      clapInFlightRef.current = false;
+    }
   };
 
   const handleSave = async () => {
-    setHasSaved(!hasSaved);
-    await feedApi.saveSpree(spree.id);
+    const nextSaved = !hasSaved;
+    setHasSaved(nextSaved);
+    try {
+      if (nextSaved) {
+        await feedApi.saveSpree(spree.id);
+      } else {
+        await feedApi.unsaveSpree(spree.id);
+      }
+    } catch (error) {
+      setHasSaved(!nextSaved);
+      showToast(error instanceof Error ? error.message : 'Unable to update saved state');
+    }
   };
 
   const handleFollow = async () => {
     const nextState = !isFollowing;
     setIsFollowing(nextState);
-    if (nextState && spree.creator?.id) {
-      await userApi.followUser(spree.creator.id);
+    if (!spree.creator?.id) return;
+    try {
+      if (nextState) {
+        await userApi.followUser(spree.creator.id);
+      } else {
+        await userApi.unfollowUser(spree.creator.id);
+      }
+    } catch (error) {
+      setIsFollowing(!nextState);
+      showToast(error instanceof Error ? error.message : 'Unable to update follow state');
     }
   };
 
   const handleShare = async () => {
-    const res = await feedApi.shareSpree(spree.id, 'web');
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(res.shareUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2200);
+    try {
+      const res = await feedApi.shareSpree(spree.id, 'web');
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(res.shareUrl);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2200);
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to share this spree');
     }
   };
 
@@ -106,10 +142,33 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   const creatorUsername = spree.creator?.username || 'creator';
   const creatorHandle = spree.creator?.handle || `@${creatorUsername}`;
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (isActive) {
+      try {
+        const playback = video.play();
+        if (playback && typeof playback.then === 'function') {
+          playback.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        } else {
+          setIsPlaying(true);
+        }
+      } catch {
+        setIsPlaying(false);
+      }
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  }, [isActive]);
+
   return (
-    <div
+    <motion.div
       onClick={handleDoubleTap}
-      className="relative w-full h-[calc(100dvh-5.5rem)] rounded-3xl overflow-hidden bg-black select-none snap-start flex items-center justify-center border border-white/5 shadow-2xl"
+      initial={{ opacity: 0, scale: 0.985 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+      className="relative flex h-[calc(100dvh-5.5rem)] w-full snap-start select-none items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/10 bg-black shadow-2xl shadow-black/50"
     >
       {/* Copied Link Toast */}
       {copiedLink && (
@@ -142,7 +201,7 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
           poster={spree.thumbnail_url}
           autoPlay={isActive}
           loop
-          muted={isMuted}
+          muted={soundMuted || isMuted}
           playsInline
           onTimeUpdate={handleTimeUpdate}
           onError={() => setVideoError(true)}
@@ -156,10 +215,13 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
         />
       )}
 
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(4,5,10,.52),transparent_24%,transparent_55%,rgba(4,5,10,.92))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_30%,rgba(124,58,237,.16),transparent_32%)]" />
+
       {/* Video Progress Scrubber Bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 z-20">
+      <div className="absolute bottom-0 left-0 right-0 z-20 h-1 bg-white/20">
         <div
-          className="h-full bg-spreego-violet transition-all duration-100"
+          className="h-full bg-gradient-to-r from-spreego-violet-light to-spreego-champagne transition-all duration-100"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -187,6 +249,11 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
       >
         {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
       </button>
+
+      <div className="pointer-events-none absolute left-16 top-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[.18em] text-white/80 backdrop-blur-xl">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-spreego-champagne shadow-[0_0_8px_rgba(245,208,97,.9)]" />
+        {spree.sponsored ? 'Featured drop' : 'Live in your orbit'}
+      </div>
 
       {/* Right Rail Actions */}
       <div
@@ -374,6 +441,6 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
         onClose={() => setIsCommentOpen(false)}
         spreeId={spree.id}
       />
-    </div>
+    </motion.div>
   );
 };

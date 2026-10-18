@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Search, Zap, Volume2, VolumeX, ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FeedSubTab } from '../../types';
 import { NotificationDrawer } from './NotificationDrawer';
+import { AuthModal } from './AuthModal';
+import { authApi, getAuthToken } from '../../api/client';
 
 interface TopNavProps {
   activeSubTab?: FeedSubTab;
@@ -22,6 +24,14 @@ export const TopNav: React.FC<TopNavProps> = ({
 }) => {
   const { currentTab, soundMuted, toggleSound, setCurrentTab } = useApp();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAuthToken()));
+
+  useEffect(() => {
+    const syncAuthState = () => setIsAuthenticated(Boolean(getAuthToken()));
+    window.addEventListener('spreego-auth-changed', syncAuthState);
+    return () => window.removeEventListener('spreego-auth-changed', syncAuthState);
+  }, []);
 
   const handleNotificationClick = () => {
     setIsNotificationOpen(true);
@@ -32,7 +42,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-spreego-canvas/80 backdrop-blur-md border-b border-white/5 px-4 py-2.5 max-w-lg mx-auto">
+    <header className="fixed top-0 left-0 right-0 z-40 mx-auto max-w-lg border-b border-white/[0.07] bg-spreego-canvas/70 px-4 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,.12)] backdrop-blur-2xl">
       <div className="flex items-center justify-between">
         {/* Left: Brand Monogram or Back Arrow */}
         <div className="flex items-center space-x-2">
@@ -46,9 +56,10 @@ export const TopNav: React.FC<TopNavProps> = ({
             </button>
           ) : (
             <div className="flex items-center space-x-1.5 select-none">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-spreego-violet to-spreego-violet-light flex items-center justify-center shadow-sm shadow-spreego-violet/30">
+              <motion.div whileHover={{ rotate: 8, scale: 1.06 }} className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-spreego-violet to-spreego-violet-light shadow-lg shadow-spreego-violet/35">
                 <Zap className="w-4 h-4 text-white fill-white" />
-              </div>
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-spreego-champagne shadow-[0_0_10px_rgba(245,208,97,.9)]" />
+              </motion.div>
               <span className="font-display font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-spreego-violet-light bg-clip-text text-transparent">
                 SPREEGO
               </span>
@@ -75,7 +86,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                   <button
                     key={tab}
                     onClick={() => onSubTabChange?.(tab)}
-                    className={`relative px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                    className={`relative rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
                       isActive
                         ? 'text-white'
                         : 'text-spreego-text-secondary hover:text-spreego-text-primary'
@@ -84,7 +95,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                     {isActive && (
                       <motion.div
                         layoutId="activeSubTabPill"
-                        className="absolute inset-0 bg-spreego-violet rounded-full -z-10 shadow-sm shadow-spreego-violet/40"
+                        className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-spreego-violet to-spreego-violet-light shadow-sm shadow-spreego-violet/40"
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                       />
                     )}
@@ -102,6 +113,23 @@ export const TopNav: React.FC<TopNavProps> = ({
 
         {/* Right: Actions (Sound, Search, Notification) */}
         <div className="flex items-center space-x-1.5">
+          <button
+            onClick={async () => {
+              if (isAuthenticated) {
+                try {
+                  await authApi.logout();
+                } catch {
+                  // Tokens are cleared by authApi.logout even if the server is unavailable.
+                }
+              } else {
+                setIsAuthOpen(true);
+              }
+            }}
+            aria-label={isAuthenticated ? 'Log out' : 'Log in'}
+            className={`rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition ${isAuthenticated ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/5 text-spreego-text-secondary hover:bg-white/10 hover:text-white'}`}
+          >
+            {isAuthenticated ? 'Log out' : 'Log in'}
+          </button>
           {currentTab === 'home' && (
             <button
               onClick={toggleSound}
@@ -140,6 +168,11 @@ export const TopNav: React.FC<TopNavProps> = ({
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         onActionClick={() => setIsNotificationOpen(false)}
+      />
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthenticated={() => setIsAuthOpen(false)}
       />
     </header>
   );

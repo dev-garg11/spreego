@@ -50,6 +50,8 @@ class AuthController:
             result = auth_service.verify_otp(
                 identifier=identifier,
                 otp_code=payload.otp_code,
+                full_name=payload.full_name,
+                username=payload.username,
                 ip_address=client_ip,
                 user_agent=user_agent,
             )

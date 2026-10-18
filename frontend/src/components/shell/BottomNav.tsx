@@ -34,7 +34,7 @@ export const BottomNav: React.FC = () => {
   return (
     <nav
       aria-label="Bottom Navigation"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-spreego-surface/90 backdrop-blur-xl border-t border-white/10 px-3 py-2 max-w-lg mx-auto"
+      className="fixed bottom-3 left-1/2 z-40 w-[calc(100%-1.25rem)] max-w-lg -translate-x-1/2 rounded-2xl border border-white/10 bg-spreego-surface/80 px-2 py-2 shadow-[0_16px_50px_rgba(0,0,0,.35)] backdrop-blur-2xl"
     >
       <div className="flex items-center justify-around relative">
         {TABS.map((tab) => {
@@ -43,14 +43,16 @@ export const BottomNav: React.FC = () => {
 
           if (tab.isSpecial) {
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => handleTabClick(tab)}
                 aria-label="Create Spree"
-                className="relative -top-3 flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-tr from-spreego-violet to-spreego-violet-light text-white shadow-lg shadow-spreego-violet/40 hover:brightness-110 active:scale-90 transition-all duration-150"
+                whileHover={{ y: -3, rotate: 6 }}
+                whileTap={{ scale: 0.88, rotate: -6 }}
+                className="relative -top-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-spreego-violet to-spreego-violet-light text-white shadow-lg shadow-spreego-violet/40 transition-all duration-150 hover:brightness-110"
               >
                 <Icon className="w-6 h-6 stroke-[2.5]" />
-              </button>
+              </motion.button>
             );
           }
 
@@ -68,7 +70,7 @@ export const BottomNav: React.FC = () => {
               {isActive && (
                 <motion.div
                   layoutId="activeBottomTabPill"
-                  className="absolute inset-0 bg-spreego-elevated/80 rounded-xl -z-10 border border-spreego-violet/30"
+                  className="absolute inset-0 -z-10 rounded-xl border border-spreego-violet/30 bg-spreego-elevated/80"
                   transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}

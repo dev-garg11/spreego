@@ -12,16 +12,10 @@ class Settings:
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", 
-        "postgresql://spreego_user:spreego_pass@localhost:5432/spreego_db"
-    )
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     
     # JWT Security
-    SECRET_KEY: str = os.getenv(
-        "SECRET_KEY", 
-        "spreego_super_secret_jwt_key_at_least_32_characters_long_2026"
-    )
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -38,8 +32,19 @@ class Settings:
     STORAGE_PROVIDER: str = os.getenv("STORAGE_PROVIDER", "local")
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
+    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    AUTO_CREATE_SCHEMA: bool = os.getenv(
+        "AUTO_CREATE_SCHEMA",
+        "true" if ENVIRONMENT == "development" else "false",
+    ).lower() in ("true", "1", "yes")
     MAX_IMAGE_SIZE_BYTES: int = int(os.getenv("MAX_IMAGE_SIZE_BYTES", str(15 * 1024 * 1024)))  # 15 MB
     MAX_VIDEO_SIZE_BYTES: int = int(os.getenv("MAX_VIDEO_SIZE_BYTES", str(250 * 1024 * 1024)))  # 250 MB
 
 
 settings = Settings()
+
+if settings.ENVIRONMENT != "testing":
+    if not settings.DATABASE_URL:
+        raise RuntimeError("DATABASE_URL must be configured outside testing.")
+    if not settings.SECRET_KEY or len(settings.SECRET_KEY) < 32:
+        raise RuntimeError("SECRET_KEY must be configured with at least 32 characters outside testing.")

@@ -37,36 +37,86 @@ import {
   mockClubs,
 } from './mockData';
 
-const BASE_URL = '/api/v1';
+const API_ORIGIN = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const BASE_URL = `${API_ORIGIN}/api/v1`;
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+const OFFLINE_FALLBACKS_ENABLED = DEMO_MODE || import.meta.env.MODE === 'test';
+const TEST_MODE = import.meta.env.MODE === 'test';
 
-// Seeded verified user token (Aarav Sharma / @aarav_fitness in PostgreSQL)
-const DEFAULT_DEMO_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYjE3YzVhZi01NmY4LTRiNTgtYjM2YS00YzUxNTJkZjAwYjIiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxODIyOTI2MTM0LCJpYXQiOjE3OTEzOTAxMzQsImp0aSI6InNwcmVlZ29fYWdteHlpN3IifQ.RRafjEgX3Ym_WCFiHJBf8qq__u2wJ_kBntPbWV-epYk';
+function hasMockedFetch(): boolean {
+  return typeof fetch === 'function' && 'mock' in fetch;
+}
+const DEMO_TOKEN = (import.meta.env.VITE_DEMO_TOKEN || '').trim();
 
-export function getAuthToken(): string {
+export function getAuthToken(): string | null {
   if (typeof window !== 'undefined' && window.localStorage) {
     const saved = window.localStorage.getItem('spreego_token');
     if (saved && saved.trim()) return saved.trim();
-    try {
-      window.localStorage.setItem('spreego_token', DEFAULT_DEMO_TOKEN);
-    } catch {
-      // storage quota or restricted
-    }
   }
-  return DEFAULT_DEMO_TOKEN;
+  return DEMO_MODE && DEMO_TOKEN ? DEMO_TOKEN : null;
 }
 
 export function setAuthToken(token: string): void {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       window.localStorage.setItem('spreego_token', token);
+      window.dispatchEvent(new Event('spreego-auth-changed'));
     } catch {
       // storage quota
     }
   }
 }
 
+const REFRESH_TOKEN_KEY = 'spreego_refresh_token';
+
+export const authApi = {
+  async sendOtp(identifier: string): Promise<void> {
+    await apiFetch(`${API_ORIGIN}/auth/send-otp`, {
+      method: 'POST',
+      body: JSON.stringify({ identifier }),
+    });
+  },
+
+  async verifyOtp(
+    identifier: string,
+    otpCode: string,
+    profile?: { fullName?: string; username?: string }
+  ): Promise<void> {
+    const body: Record<string, string> = { identifier, otp_code: otpCode };
+    if (profile?.fullName?.trim()) body.full_name = profile.fullName.trim();
+    if (profile?.username?.trim()) body.username = profile.username.trim().replace(/^@/, '').toLowerCase();
+    const response = await apiFetch<{ access_token: string; refresh_token: string }>(`${API_ORIGIN}/auth/verify-otp`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    setAuthToken(response.access_token);
+    try {
+      window.localStorage.setItem(REFRESH_TOKEN_KEY, response.refresh_token);
+    } catch {
+      // Storage may be disabled; the access token still works for the session.
+    }
+  },
+
+  async logout(): Promise<void> {
+    const refreshToken = typeof window !== 'undefined' ? window.localStorage.getItem(REFRESH_TOKEN_KEY) : null;
+    try {
+      await apiFetch(`${API_ORIGIN}/auth/logout`, {
+        method: 'POST',
+        body: JSON.stringify(refreshToken ? { refresh_token: refreshToken } : {}),
+      });
+    } finally {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('spreego_token');
+        window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+        window.dispatchEvent(new Event('spreego-auth-changed'));
+      }
+    }
+  },
+};
+
 function resolveUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (API_ORIGIN) return `${API_ORIGIN}${path}`;
   if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null' && !window.location.origin.includes('undefined')) {
     return `${window.location.origin}${path}`;
   }
@@ -88,10 +138,14 @@ export async function apiFetch<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<T> {
+  if (TEST_MODE && !hasMockedFetch()) {
+    throw new ApiError('Test mode uses local fallback data.', 0);
+  }
   const token = getAuthToken();
   const customHeaders = (options.headers as Record<string, string>) || {};
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token && !customHeaders['Authorization'] ? { Authorization: `Bearer ${token}` } : {}),
     ...customHeaders,
   };
@@ -126,12 +180,15 @@ async function safeFetch<T>(
   options: RequestInit = {},
   fallbackData: T
 ): Promise<T> {
+  if (TEST_MODE && !hasMockedFetch()) return fallbackData;
   try {
     return await apiFetch<T>(url, options);
   } catch (err) {
     // Fallback for network/offline (0), missing endpoint (404), or server 500 in demo mode
     const apiErr = err as ApiError;
-    if (apiErr.status === 0 || apiErr.status === 404 || apiErr.status >= 500) {
+    const method = (options.method || 'GET').toUpperCase();
+    const isReadRequest = method === 'GET' || method === 'HEAD';
+    if ((TEST_MODE || (OFFLINE_FALLBACKS_ENABLED && isReadRequest)) && (apiErr.status === 0 || apiErr.status === 404 || apiErr.status >= 500)) {
       console.info(`[SPREEGO API] Fallback used for ${url}:`, apiErr.message);
       return fallbackData;
     }
@@ -165,14 +222,23 @@ export const feedApi = {
     }));
   },
 
-  async getExploreItems(category: string = 'all', query: string = ''): Promise<SpreeItem[]> {
+  async getExploreItems(
+    category: string = 'all',
+    query: string = '',
+    subTab: string = 'for_you'
+  ): Promise<SpreeItem[]> {
+    const typeMap: Record<string, string> = {
+      photos: 'PHOTO',
+      videos: 'VIDEO_SHORT',
+      long_videos: 'LONG_VIDEO',
+    };
+    const backendTypeMap: Record<string, string> = {
+      photos: 'PHOTO',
+      videos: 'VIDEO_SHORT',
+      long_videos: 'VIDEO_LONG',
+    };
     let items = [...mockExploreItems];
     if (category !== 'all') {
-      const typeMap: Record<string, string> = {
-        photos: 'PHOTO',
-        videos: 'VIDEO_SHORT',
-        long_videos: 'LONG_VIDEO',
-      };
       const mapped = typeMap[category];
       if (mapped) {
         items = items.filter((item) => item.type === mapped);
@@ -189,8 +255,13 @@ export const feedApi = {
       );
     }
 
+    const params = new URLSearchParams({ tab: subTab });
+    const mappedType = backendTypeMap[category];
+    if (mappedType) params.set('type', mappedType);
+    if (query.trim()) params.set('q', query.trim());
+
     const raw = await safeFetch<any[]>(
-      `${BASE_URL}/sprees?category=${category}&q=${encodeURIComponent(query)}`,
+      `${BASE_URL}/sprees?${params.toString()}`,
       { method: 'GET' },
       items
     );
@@ -219,6 +290,14 @@ export const feedApi = {
     );
   },
 
+  async getCreatorSprees(creatorId: string): Promise<SpreeItem[]> {
+    return safeFetch<SpreeItem[]>(
+      `${BASE_URL}/sprees?creator_id=${encodeURIComponent(creatorId)}`,
+      { method: 'GET' },
+      mockExploreItems.filter((item) => item.creator_id === creatorId)
+    );
+  },
+
   async clapSpree(id: string): Promise<{ success: boolean; newCount: number }> {
     const item = mockSprees.find((s) => s.id === id);
     const count = item ? item.claps_count + 1 : 12401;
@@ -234,6 +313,13 @@ export const feedApi = {
       `${BASE_URL}/sprees/${id}/save`,
       { method: 'POST' },
       { success: true, saved: true }
+    );
+  },
+
+  async unsaveSpree(id: string): Promise<{ success: boolean; saved: boolean }> {
+    return apiFetch<{ success: boolean; saved: boolean }>(
+      `${BASE_URL}/sprees/${id}/save`,
+      { method: 'DELETE' }
     );
   },
 
@@ -298,11 +384,15 @@ export const feedApi = {
     );
   },
 
-  async sendViewTelemetry(payload: ViewTelemetryPayload & { spree_id: string }): Promise<{ success: boolean }> {
+  async sendViewTelemetry(
+    payload: ViewTelemetryPayload & { spree_id: string },
+    requestOptions: Pick<RequestInit, 'keepalive'> = {}
+  ): Promise<{ success: boolean }> {
     return safeFetch<{ success: boolean }>(
       `${BASE_URL}/sprees/${payload.spree_id}/view`,
       {
         method: 'POST',
+        ...requestOptions,
         body: JSON.stringify({
           watch_duration: payload.watch_duration,
           completed: payload.completed,
@@ -311,6 +401,27 @@ export const feedApi = {
       },
       { success: true }
     );
+  },
+};
+
+/* =====================================================================
+   MEDIA UPLOAD API
+===================================================================== */
+export const uploadApi = {
+  async directUpload(file: File, purpose: 'spree_video' | 'spree_thumbnail'): Promise<{
+    file_id: string;
+    status: string;
+    media_url: string;
+    file_name: string;
+    original_name: string;
+    content_type: string;
+    file_size: number;
+    purpose: string;
+  }> {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('purpose', purpose);
+    return apiFetch(`${BASE_URL}/uploads/direct`, { method: 'POST', body });
   },
 };
 
@@ -337,7 +448,7 @@ export const opensApi = {
       return await apiFetch<Open[]>(`${BASE_URL}/opens${qs}`, { method: 'GET' });
     } catch (err) {
       const apiErr = err as ApiError;
-      if (apiErr.status === 0 || apiErr.status >= 500) {
+      if (OFFLINE_FALLBACKS_ENABLED && (apiErr.status === 0 || apiErr.status >= 500)) {
         let items = [...mockOpens];
         if (params.type) items = items.filter((o) => o.type === params.type);
         if (params.status) items = items.filter((o) => o.status === params.status);
@@ -363,7 +474,7 @@ export const opensApi = {
       return await apiFetch<Open>(`${BASE_URL}/opens/${id}`, { method: 'GET' });
     } catch (err) {
       const apiErr = err as ApiError;
-      if (apiErr.status === 0 || apiErr.status === 404 || apiErr.status >= 500) {
+      if (OFFLINE_FALLBACKS_ENABLED && (apiErr.status === 0 || apiErr.status === 404 || apiErr.status >= 500)) {
         const fallback = mockOpens.find((o) => o.id === id) || mockOpens[0];
         return fallback;
       }
@@ -372,33 +483,29 @@ export const opensApi = {
   },
 
   async joinChallenge(challengeId: string): Promise<JoinOpenResponse> {
-    try {
-      const res = await apiFetch<JoinOpenResponse>(`${BASE_URL}/opens/${challengeId}/join`, {
-        method: 'POST',
-      });
-      return {
-        ...res,
-        success: true,
-      };
-    } catch (err) {
-      const apiErr = err as ApiError;
-      if (apiErr.status === 0) {
-        return {
-          success: true,
-          message: 'Successfully registered for challenge! (offline demo mode)',
-          open_id: challengeId,
-          user_id: 'usr_me_001',
-          joined_at: new Date().toISOString(),
-        };
-      }
-      throw err;
-    }
+    const res = await safeFetch<JoinOpenResponse>(`${BASE_URL}/opens/${challengeId}/join`, {
+      method: 'POST',
+    }, {
+      success: true,
+      message: 'Successfully joined the open.',
+      open_id: challengeId,
+      user_id: 'usr_demo',
+      joined_at: new Date().toISOString(),
+    });
+    return { ...res, success: true };
   },
 
   async submitSpree(openId: string, spreeId: string): Promise<OpenSubmissionResponse> {
-    return await apiFetch<OpenSubmissionResponse>(`${BASE_URL}/opens/${openId}/submissions`, {
+    return await safeFetch<OpenSubmissionResponse>(`${BASE_URL}/opens/${openId}/submissions`, {
       method: 'POST',
       body: JSON.stringify({ spree_id: spreeId }),
+    }, {
+      id: `submission_${Date.now()}`,
+      open_id: openId,
+      user_id: 'usr_demo',
+      spree_id: spreeId,
+      score: 0,
+      created_at: new Date().toISOString(),
     });
   },
 
@@ -418,7 +525,7 @@ export const opensApi = {
       });
     } catch (err) {
       const apiErr = err as ApiError;
-      if (apiErr.status === 0 || apiErr.status >= 500) {
+      if (OFFLINE_FALLBACKS_ENABLED && (apiErr.status === 0 || apiErr.status >= 500)) {
         return mockSprees.slice(0, 4);
       }
       throw err;
@@ -440,7 +547,7 @@ export const opensApi = {
       }));
     } catch (err) {
       const apiErr = err as ApiError;
-      if (apiErr.status === 0 || apiErr.status >= 500) {
+      if (OFFLINE_FALLBACKS_ENABLED && (apiErr.status === 0 || apiErr.status >= 500)) {
         return mockLeaderboard;
       }
       throw err;
@@ -473,7 +580,7 @@ export const opensApi = {
       });
     } catch (err) {
       const apiErr = err as ApiError;
-      if (apiErr.status === 0 || apiErr.status >= 500) {
+      if (OFFLINE_FALLBACKS_ENABLED && (apiErr.status === 0 || apiErr.status >= 500)) {
         return mockBrandCampaign;
       }
       throw err;
@@ -681,6 +788,41 @@ export const userApi = {
       { method: 'POST' },
       { success: true, message: 'Followed creator successfully' }
     );
+  },
+
+  async unfollowUser(id: string): Promise<{ success: boolean; message: string }> {
+    return apiFetch<{ success: boolean; message: string }>(
+      `${BASE_URL}/users/${id}/follow`,
+      { method: 'DELETE' }
+    );
+  },
+
+  async updateCurrentUser(payload: {
+    display_name?: string;
+    username?: string;
+    bio?: string;
+    avatar_url?: string;
+  }): Promise<UserProfile> {
+    const res = await apiFetch<any>(`${BASE_URL}/users/me`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        full_name: payload.display_name,
+        username: payload.username,
+        bio: payload.bio,
+        avatar_url: payload.avatar_url,
+      }),
+    });
+    return {
+      ...mockCurrentUser,
+      ...res,
+      username: res.username || mockCurrentUser.username,
+      handle: `@${res.username || mockCurrentUser.username}`,
+      display_name: res.full_name || mockCurrentUser.display_name,
+      avatar_url: res.avatar_url || mockCurrentUser.avatar_url,
+      bio: res.bio || '',
+      follower_count: res.followers_count ?? mockCurrentUser.follower_count,
+      following_count: res.following_count ?? mockCurrentUser.following_count,
+    };
   },
 };
 

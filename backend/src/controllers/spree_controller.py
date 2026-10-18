@@ -95,7 +95,19 @@ class SpreeController:
         skip: int,
         limit: int,
         db: Session,
+        search: Optional[str] = None,
+        tab: str = "for_you",
+        requesting_user: Optional[User] = None,
+        creator_id: Optional[str] = None,
     ) -> List[SpreeResponse]:
         service = SpreeService(db)
-        sprees = service.list_public_sprees(spree_type=spree_type, skip=skip, limit=limit)
+        sprees = service.list_public_sprees(
+            spree_type=spree_type,
+            skip=skip,
+            limit=limit,
+            search=search,
+            tab=tab,
+            requesting_user=requesting_user,
+            creator_id=creator_id,
+        )
         return [SpreeResponse.model_validate(s) for s in sprees]

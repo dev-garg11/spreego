@@ -18,12 +18,14 @@ const MainAppContent: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<FeedSubTab>('for_you');
 
   return (
-    <div className="relative min-h-[100dvh] max-w-lg mx-auto bg-spreego-canvas text-spreego-text-primary flex flex-col overflow-x-hidden selection:bg-spreego-violet selection:text-white">
+    <div className="spreego-noise relative min-h-[100dvh] max-w-lg mx-auto overflow-x-hidden bg-spreego-canvas text-spreego-text-primary selection:bg-spreego-violet selection:text-white">
+      <motion.div aria-hidden="true" className="pointer-events-none fixed -left-28 top-24 z-0 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" animate={{ x: [0, 25, 0], y: [0, 30, 0], opacity: [0.45, 0.7, 0.45] }} transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }} />
+      <motion.div aria-hidden="true" className="pointer-events-none fixed -right-28 bottom-32 z-0 h-72 w-72 rounded-full bg-amber-300/5 blur-3xl" animate={{ x: [0, -20, 0], y: [0, -24, 0], opacity: [0.35, 0.6, 0.35] }} transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }} />
       {/* Top Bar */}
       <TopNav activeSubTab={activeSubTab} onSubTabChange={setActiveSubTab} />
 
       {/* Screen Router Container */}
-      <main className={`flex-1 flex flex-col ${currentTab === 'home' ? 'pt-14 pb-20 px-0' : 'pt-14 pb-20 px-3'}`}>
+      <main className={`relative z-10 flex-1 flex flex-col ${currentTab === 'home' ? 'pt-14 pb-20 px-0' : 'pt-14 pb-20 px-3'}`}>
         {currentTab === 'home' && (
           <ReelFeed
             subTab={activeSubTab}

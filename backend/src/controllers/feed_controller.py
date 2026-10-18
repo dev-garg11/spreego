@@ -14,6 +14,7 @@ class FeedController:
         skip: int,
         limit: int,
         db: Session,
+        tab: str = "for_you",
     ) -> List[FeedSpreeResponse]:
         service = FeedRankingService(db)
         return service.get_ranked_feed(
@@ -21,4 +22,5 @@ class FeedController:
             spree_type=spree_type,
             skip=skip,
             limit=limit,
+            feed_tab=tab,
         )

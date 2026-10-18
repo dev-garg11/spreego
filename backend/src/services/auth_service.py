@@ -52,6 +52,8 @@ class AuthService:
         self,
         identifier: str,
         otp_code: str,
+        full_name: Optional[str] = None,
+        username: Optional[str] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -105,6 +107,22 @@ class AuthService:
                 )
                 self.profile_repo.create(profile)
                 user = self.user_repo.get_by_id(user.id)
+
+        # Apply registration profile details after the account exists. Login requests
+        # leave these values unset, while registration can claim a unique handle.
+        if full_name is not None or username is not None:
+            profile = self.profile_repo.get_by_user_id(user.id)
+            if profile is None:
+                profile = Profile(user_id=user.id)
+            if username is not None:
+                existing_profile = self.profile_repo.get_by_username(username)
+                if existing_profile and existing_profile.user_id != user.id:
+                    raise ValueError("Username already taken.")
+                profile.username = username
+            if full_name is not None:
+                profile.full_name = full_name.strip()
+            self.profile_repo.update(profile)
+            user = self.user_repo.get_by_id(user.id)
 
         # Issue tokens and record session
         access_token, refresh_token, expires_in = self.token_service.create_auth_tokens(

@@ -21,7 +21,8 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setHasAccepted(true);
+        const parsed = JSON.parse(stored) as { accepted?: boolean; version?: string };
+        setHasAccepted(parsed.accepted === true && parsed.version === CURRENT_VERSION);
       }
     } catch (e) {
       console.warn('[ConsentGuard] Could not read localStorage:', e);

@@ -157,9 +157,17 @@ class SpreeService:
         spree_type: Optional[SpreeType] = None,
         skip: int = 0,
         limit: int = 20,
+        search: Optional[str] = None,
+        tab: str = "for_you",
+        requesting_user: Optional[User] = None,
+        creator_id: Optional[str] = None,
     ) -> List[Spree]:
         return self.spree_repo.get_public_sprees(
             spree_type=spree_type,
             skip=skip,
             limit=limit,
+            search=search,
+            tab=tab,
+            requesting_user_id=requesting_user.id if requesting_user else None,
+            creator_id=creator_id,
         )

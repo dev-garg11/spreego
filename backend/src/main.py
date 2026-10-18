@@ -18,19 +18,16 @@ from src.routes.wallet_routes import router as wallet_router
 from src.routes.notification_routes import router as notification_router
 from src.routes.moderation_routes import router as moderation_router
 from src.routes.upload_routes import router as upload_router
+from src.routes.analytics_routes import router as analytics_router
 from fastapi.staticfiles import StaticFiles
 import os
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database tables on startup (only in non-testing environments)
-    if settings.ENVIRONMENT != "testing":
-        try:
-            Base.metadata.create_all(bind=engine)
-        except Exception as exc:
-            import logging
-            logging.getLogger("spreego").warning(f"Database startup warning: {exc}")
+    # Schema creation is opt-in for local development. Production must use migrations.
+    if settings.ENVIRONMENT == "development" and settings.AUTO_CREATE_SCHEMA:
+        Base.metadata.create_all(bind=engine)
     yield
 
 
@@ -44,7 +41,7 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,6 +63,7 @@ app.include_router(product_router)
 app.include_router(order_router)
 app.include_router(wallet_router)
 app.include_router(upload_router)
+app.include_router(analytics_router)
 
 # Mount local uploads directory for zero-cost static media serving
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

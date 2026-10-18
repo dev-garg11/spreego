@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
+import { uploadApi } from '../../api/client';
 
 interface UploadSheetModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
   const [, setSelectedMode] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const creationModes = [
@@ -82,24 +84,36 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
   ];
 
   const handleSelectMode = (modeId: string) => {
-    setSelectedMode(modeId);
-    setIsUploading(true);
-    setTimeout(() => {
-      setIsUploading(false);
-      setUploadComplete(true);
-      setTimeout(() => {
-        setUploadComplete(false);
-        setSelectedMode(null);
-        onClose();
-        showToast(`Successfully published ${modeId} to your feed! ✨`);
-      }, 900);
-    }, 1200);
+    if (modeId === 'video' || modeId === 'photo') {
+      setUploadError(null);
+      setSelectedMode(modeId);
+      fileInputRef.current?.click();
+      return;
+    }
+    showToast(`${modeId} creation is coming soon.`);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      handleSelectMode(file.type.startsWith('video') ? 'video' : 'photo');
+      const purpose = file.type.startsWith('video') ? 'spree_video' : 'spree_thumbnail';
+      setIsUploading(true);
+      setUploadError(null);
+      try {
+        await uploadApi.directUpload(file, purpose);
+        setUploadComplete(true);
+        showToast('Media uploaded successfully. Add a caption to publish it.');
+        setTimeout(() => {
+          setUploadComplete(false);
+          setSelectedMode(null);
+          onClose();
+        }, 900);
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : 'Upload failed');
+      } finally {
+        setIsUploading(false);
+        e.target.value = '';
+      }
     }
   };
 
@@ -151,6 +165,12 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
               </div>
             )}
 
+            {uploadError && !isUploading && !uploadComplete && (
+              <div className="p-3 rounded-2xl bg-rose-950/30 border border-rose-500/30 text-xs text-rose-200">
+                {uploadError}
+              </div>
+            )}
+
             {!isUploading && !uploadComplete && (
               <>
                 {/* 6-Option Creation Grid */}
@@ -192,7 +212,14 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
                       return (
                         <button
                           key={tool.id}
-                          onClick={() => handleSelectMode(tool.id)}
+                          onClick={() => {
+                            if (tool.id === 'camera' || tool.id === 'gallery') {
+                              setSelectedMode('photo');
+                              fileInputRef.current?.click();
+                            } else {
+                              showToast('Drafts are coming soon.');
+                            }
+                          }}
                           className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors group"
                         >
                           <div className="flex items-center space-x-3">
