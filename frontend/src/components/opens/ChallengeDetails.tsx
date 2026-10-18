@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Open, SpreeItem } from '../../types';
 import { opensApi, feedApi, ApiError } from '../../api/client';
+import { useOptionalApp } from '../../context/AppContext';
 import { RankingLeaderboard } from './RankingLeaderboard';
 import {
   ArrowLeft,
@@ -28,6 +29,7 @@ function getDaysLeft(endAt?: string): number {
 }
 
 export const ChallengeDetails: React.FC<ChallengeDetailsProps> = ({ challengeId, onBack }) => {
+  const { requestAuth, showToast } = useOptionalApp();
   const [challenge, setChallenge] = useState<Open | null>(null);
   const [viewTab, setViewTab] = useState<'view' | 'ranking'>('view');
   const [loading, setLoading] = useState(true);
@@ -100,6 +102,10 @@ export const ChallengeDetails: React.FC<ChallengeDetailsProps> = ({ challengeId,
 
   const handleJoin = async () => {
     if (!challenge || hasJoined || isJoining) return;
+    if (!requestAuth()) {
+      showToast('Log in first to participate in this Open 🔐');
+      return;
+    }
     setIsJoining(true);
     setJoinError(null);
     setJoinMessage(null);
@@ -121,6 +127,10 @@ export const ChallengeDetails: React.FC<ChallengeDetailsProps> = ({ challengeId,
   };
 
   const handleOpenSubmitModal = async () => {
+    if (!requestAuth()) {
+      showToast('Log in first to submit a Spree 🔐');
+      return;
+    }
     setShowSubmitModal(true);
     setSubmitError(null);
     setSubmitSuccess(null);

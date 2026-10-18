@@ -20,13 +20,21 @@ const TABS: TabItem[] = [
 ];
 
 export const BottomNav: React.FC = () => {
-  const { currentTab, setCurrentTab, openModal } = useApp();
+  const { currentTab, setCurrentTab, openModal, requestAuth, showToast } = useApp();
 
   const handleTabClick = (tab: TabItem) => {
     if (tab.isSpecial) {
+      if (!requestAuth()) {
+        showToast('Log in first to create and upload your own Spree 🔐');
+        return;
+      }
       // Trigger upload creation modal bottom sheet
       openModal('upload');
     } else {
+      if (tab.id === 'profile' && !requestAuth()) {
+        showToast('Log in first to open your profile 🔐');
+        return;
+      }
       setCurrentTab(tab.id);
     }
   };

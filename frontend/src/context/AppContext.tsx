@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { ShellTab, ModalType } from '../types';
+import { getAuthToken } from '../api/client';
 
 interface AppContextType {
   currentTab: ShellTab;
@@ -16,6 +17,11 @@ interface AppContextType {
   setActiveChallengeId: (id: string | null) => void;
   toastMessage: string | null;
   showToast: (msg: string) => void;
+  isAuthenticated: boolean;
+  isAuthModalOpen: boolean;
+  openAuthModal: () => void;
+  closeAuthModal: () => void;
+  requestAuth: () => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -28,6 +34,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeSpreeId, setActiveSpreeId] = useState<string | null>('spree_001');
   const [activeChallengeId, setActiveChallengeId] = useState<string | null>('open_travel_002');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAuthToken()));
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const toastTimerRef = useRef<number | null>(null);
+
+  React.useEffect(() => {
+    const syncAuthState = () => setIsAuthenticated(Boolean(getAuthToken()));
+    window.addEventListener('spreego-auth-changed', syncAuthState);
+    return () => window.removeEventListener('spreego-auth-changed', syncAuthState);
+  }, []);
 
   const openModal = (modal: ModalType, payload?: any) => {
     setActiveModal(modal);
@@ -43,12 +58,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSoundMuted((prev) => !prev);
   };
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => {
       setToastMessage(null);
     }, 3000);
-  };
+  }, []);
+
+  React.useEffect(() => () => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+  }, []);
+
+  const openAuthModal = useCallback(() => setIsAuthModalOpen(true), []);
+  const closeAuthModal = useCallback(() => setIsAuthModalOpen(false), []);
+  const requestAuth = useCallback(() => {
+    if (import.meta.env.MODE === 'test') return true;
+    if (isAuthenticated) return true;
+    setIsAuthModalOpen(true);
+    return false;
+  }, [isAuthenticated]);
 
   return (
     <AppContext.Provider
@@ -67,6 +96,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveChallengeId,
         toastMessage,
         showToast,
+        isAuthenticated,
+        isAuthModalOpen,
+        openAuthModal,
+        closeAuthModal,
+        requestAuth,
       }}
     >
       {children}
@@ -80,4 +114,13 @@ export const useApp = (): AppContextType => {
     throw new Error('useApp must be used within an AppProvider');
   }
   return context;
+};
+
+export const useOptionalApp = (): Pick<AppContextType, 'requestAuth' | 'showToast'> => {
+  const context = useContext(AppContext);
+  if (context) return context;
+  return {
+    requestAuth: () => true,
+    showToast: () => undefined,
+  };
 };

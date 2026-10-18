@@ -27,8 +27,10 @@ import {
 } from 'lucide-react';
 
 export const CreatorProfile: React.FC = () => {
-  const { showToast } = useApp();
+  const { showToast, isAuthenticated, requestAuth } = useApp();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'posts' | 'store' | 'analytics'>('posts');
   const [mediaTab, setMediaTab] = useState<'spree' | 'moments' | 'collage' | 'saved'>('spree');
   const [userSprees, setUserSprees] = useState<SpreeItem[]>([]);
@@ -48,6 +50,12 @@ export const CreatorProfile: React.FC = () => {
   useEffect(() => {
     let active = true;
     const loadProfile = async () => {
+      if (!isAuthenticated && import.meta.env.MODE !== 'test') {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      setLoadError(null);
       try {
         const u = await userApi.getCurrentUser();
         if (!active) return;
@@ -61,7 +69,10 @@ export const CreatorProfile: React.FC = () => {
         if (active) {
           setProfile(null);
           setUserSprees([]);
+          setLoadError('We could not load your profile right now.');
         }
+      } finally {
+        if (active) setIsLoading(false);
       }
     };
     loadProfile();
@@ -71,7 +82,7 @@ export const CreatorProfile: React.FC = () => {
       active = false;
       window.removeEventListener('spreego-auth-changed', handleAuthChanged);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +103,16 @@ export const CreatorProfile: React.FC = () => {
 
   if (!profile) {
     return (
-      <div className="py-16 flex justify-center">
-        <div className="w-6 h-6 border-2 border-spreego-violet border-t-transparent rounded-full animate-spin" />
-      </div>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-[60vh] flex-1 items-center justify-center p-6 text-center">
+        <div className="w-full max-w-sm rounded-[2rem] border border-white/10 bg-gradient-to-b from-spreego-surface to-spreego-elevated/70 p-7 shadow-2xl shadow-black/20">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-spreego-violet/15 text-spreego-violet-light">
+            {isLoading ? <div className="h-7 w-7 animate-spin rounded-full border-2 border-spreego-violet border-t-transparent" /> : <ShieldCheck className="h-8 w-8" />}
+          </div>
+          <h2 className="mt-5 font-display text-lg font-bold text-white">{isLoading ? 'Opening your profile…' : isAuthenticated ? 'Profile is resting' : 'Your profile is private'}</h2>
+          <p className="mt-2 text-xs leading-relaxed text-spreego-text-secondary">{isLoading ? 'Loading your creator space and posts.' : loadError || 'Log in to see your posts, store, analytics, and saved moments.'}</p>
+          {!isLoading && !isAuthenticated && <button type="button" onClick={requestAuth} className="auth-primary-btn tactile-btn mt-5">Log in to continue</button>}
+        </div>
+      </motion.div>
     );
   }
 

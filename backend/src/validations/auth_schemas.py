@@ -61,6 +61,60 @@ class VerifyOTPRequest(BaseSchema):
         raise ValueError("At least one of phone_number, email, or identifier is required.")
 
 
+class RegisterRequest(BaseSchema):
+    identifier: str = Field(..., min_length=3, max_length=255, description="Email address or phone number")
+    username: str = Field(..., min_length=3, max_length=64)
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: str = Field(..., min_length=2, max_length=128)
+
+    @field_validator("identifier", "username", "full_name")
+    @classmethod
+    def trim_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be empty.")
+        return value
+
+    @field_validator("username")
+    @classmethod
+    def validate_registration_username(cls, value: str) -> str:
+        value = value.lstrip("@").lower()
+        if not re.fullmatch(r"[a-z0-9_\.]{3,64}", value):
+            raise ValueError("Username may contain only letters, numbers, underscores, and dots.")
+        return value
+
+
+class LoginRequest(BaseSchema):
+    identifier: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=1, max_length=128)
+
+    @field_validator("identifier")
+    @classmethod
+    def trim_login_identifier(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Username, email, or phone is required.")
+        return value
+
+
+class ForgotPasswordRequest(BaseSchema):
+    identifier: str = Field(..., min_length=3, max_length=255)
+
+    @field_validator("identifier")
+    @classmethod
+    def trim_reset_identifier(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Username, email, or phone is required.")
+        return value
+
+
+class ResetPasswordRequest(BaseSchema):
+    identifier: str = Field(..., min_length=3, max_length=255)
+    otp_code: str = Field(..., min_length=4, max_length=10)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
 class RefreshTokenRequest(BaseSchema):
     refresh_token: str = Field(..., description="Valid JWT refresh token")
 

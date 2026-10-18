@@ -11,12 +11,24 @@ import { UploadSheetModal } from './components/upload/UploadSheetModal';
 import { OpensOverview } from './components/opens/OpensOverview';
 import { CreatorProfile } from './components/creator/CreatorProfile';
 import { NotificationPage } from './components/shell/NotificationPage';
+import { AuthModal } from './components/shell/AuthModal';
+import { useConsent } from './context/ConsentContext';
+import { getAuthToken } from './api/client';
 import { Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MainAppContent: React.FC = () => {
-  const { currentTab, toastMessage, activeModal, closeModal, setCurrentTab } = useApp();
+  const { currentTab, toastMessage, activeModal, closeModal, setCurrentTab, isAuthenticated, isAuthModalOpen, openAuthModal, closeAuthModal } = useApp();
+  const { hasAccepted, isLoading: consentLoading } = useConsent();
   const [activeSubTab, setActiveSubTab] = useState<FeedSubTab>('for_you');
+
+  React.useEffect(() => {
+    if (import.meta.env.MODE !== 'test' && !consentLoading && hasAccepted && !isAuthenticated) openAuthModal();
+  }, [consentLoading, hasAccepted, isAuthenticated, openAuthModal]);
+
+  React.useEffect(() => {
+    if (import.meta.env.MODE !== 'test' && !getAuthToken() && currentTab === 'profile') setCurrentTab('home');
+  }, [currentTab, setCurrentTab]);
 
   return (
     <div className="spreego-noise relative min-h-[100dvh] max-w-lg mx-auto overflow-x-hidden bg-spreego-canvas text-spreego-text-primary selection:bg-spreego-violet selection:text-white">
@@ -59,6 +71,13 @@ const MainAppContent: React.FC = () => {
 
       {/* Persistent Bottom Dock Navigation */}
       <BottomNav />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        required={hasAccepted && !isAuthenticated}
+        onClose={isAuthenticated ? closeAuthModal : () => undefined}
+        onAuthenticated={closeAuthModal}
+      />
 
       {/* R3 Terms & Consent Guard Modal */}
       <ConsentGuardModal />

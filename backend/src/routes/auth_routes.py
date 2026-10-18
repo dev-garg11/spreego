@@ -14,9 +14,33 @@ from src.validations.auth_schemas import (
     TokenResponse,
     UserResponse,
     VerifyOTPRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    return AuthController.register(payload=payload, request=request, db=db)
+
+
+@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    return AuthController.login(payload=payload, request=request, db=db)
+
+
+@router.post("/forgot-password", response_model=MessageResponse, status_code=status.HTTP_200_OK)
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> MessageResponse:
+    return AuthController.forgot_password(payload=payload, db=db)
+
+
+@router.post("/reset-password", response_model=MessageResponse, status_code=status.HTTP_200_OK)
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> MessageResponse:
+    return AuthController.reset_password(payload=payload, db=db)
 
 
 @router.post(

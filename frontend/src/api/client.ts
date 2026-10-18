@@ -70,6 +70,58 @@ export function setAuthToken(token: string): void {
 const REFRESH_TOKEN_KEY = 'spreego_refresh_token';
 
 export const authApi = {
+  async register(payload: {
+    identifier: string;
+    username: string;
+    password: string;
+    fullName: string;
+  }): Promise<void> {
+    const response = await apiFetch<{ access_token: string; refresh_token: string }>(`${API_ORIGIN}/auth/register`, {
+      method: 'POST',
+      body: JSON.stringify({
+        identifier: payload.identifier.trim(),
+        username: payload.username.trim().replace(/^@/, '').toLowerCase(),
+        password: payload.password,
+        full_name: payload.fullName.trim(),
+      }),
+    });
+    setAuthToken(response.access_token);
+    try {
+      window.localStorage.setItem(REFRESH_TOKEN_KEY, response.refresh_token);
+    } catch {
+      // Storage may be disabled; the access token still works for the session.
+    }
+  },
+
+  async login(identifier: string, password: string): Promise<void> {
+    const response = await apiFetch<{ access_token: string; refresh_token: string }>(`${API_ORIGIN}/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify({ identifier: identifier.trim(), password }),
+    });
+    setAuthToken(response.access_token);
+    try {
+      window.localStorage.setItem(REFRESH_TOKEN_KEY, response.refresh_token);
+    } catch {
+      // Storage may be disabled; the access token still works for the session.
+    }
+  },
+
+  async requestPasswordReset(identifier: string): Promise<string> {
+    const response = await apiFetch<{ message: string }>(`${API_ORIGIN}/auth/forgot-password`, {
+      method: 'POST',
+      body: JSON.stringify({ identifier: identifier.trim() }),
+    });
+    return response.message;
+  },
+
+  async resetPassword(identifier: string, otpCode: string, newPassword: string): Promise<string> {
+    const response = await apiFetch<{ message: string }>(`${API_ORIGIN}/auth/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ identifier: identifier.trim(), otp_code: otpCode.trim(), new_password: newPassword }),
+    });
+    return response.message;
+  },
+
   async sendOtp(identifier: string): Promise<void> {
     await apiFetch(`${API_ORIGIN}/auth/send-otp`, {
       method: 'POST',

@@ -4,6 +4,7 @@ import { opensApi, ApiError } from '../../api/client';
 import { ChallengeDetails } from './ChallengeDetails';
 import { BrandSponsorship } from './BrandSponsorship';
 import { Clock, Sparkles, Plus, AlertCircle, RefreshCw } from 'lucide-react';
+import { useOptionalApp } from '../../context/AppContext';
 
 function getDaysLeft(endAt: string): number {
   const end = new Date(endAt).getTime();
@@ -12,6 +13,7 @@ function getDaysLeft(endAt: string): number {
 }
 
 export const OpensOverview: React.FC = () => {
+  const { requestAuth, showToast } = useOptionalApp();
   const [selectedType, setSelectedType] = useState<OpenType>('CHALLENGE');
   const [opens, setOpens] = useState<Open[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
@@ -127,7 +129,13 @@ export const OpensOverview: React.FC = () => {
           <h2 className="font-display font-extrabold text-xl text-white">Opens</h2>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                if (!requestAuth()) {
+                  showToast('Log in first to create an Open 🔐');
+                  return;
+                }
+                setShowCreateModal(true);
+              }}
               className="flex items-center space-x-1 px-3 py-1 rounded-full bg-spreego-violet text-white text-xs font-semibold hover:bg-spreego-violet-light transition-all shadow-sm shadow-spreego-violet/30"
             >
               <Plus className="w-3.5 h-3.5" />

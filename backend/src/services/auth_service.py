@@ -1,6 +1,9 @@
 import re
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from src.config.passwords import hash_password, verify_password
 from src.config.security import TokenError, decode_token
 from src.models.profile import Profile
 from src.models.user import User
@@ -8,6 +11,12 @@ from src.repositories.profile_repository import ProfileRepository
 from src.repositories.user_repository import UserRepository
 from src.services.otp_service import OTPService
 from src.services.token_service import TokenService
+
+
+class LoginLockedError(ValueError):
+    def __init__(self, retry_after_seconds: int):
+        self.retry_after_seconds = max(1, retry_after_seconds)
+        super().__init__(f"Too many incorrect password attempts. Try again in {self.retry_after_seconds // 60 + 1} minute(s).")
 
 
 class AuthService:
@@ -28,6 +37,131 @@ class AuthService:
             "message": "OTP sent successfully.",
             "identifier": clean_identifier,
         }
+
+    @staticmethod
+    def _normalize_login_identifier(identifier: str) -> str:
+        clean = identifier.strip()
+        return clean.lower() if "@" in clean or clean.startswith("@") else clean
+
+    def _find_login_user(self, identifier: str) -> Optional[User]:
+        clean = self._normalize_login_identifier(identifier)
+        if clean.startswith("@") or ("@" not in clean and not clean.replace("+", "").isdigit()):
+            return self.user_repo.get_by_username(clean)
+        return self.user_repo.get_by_identifier(clean)
+
+    def register_password_user(
+        self,
+        identifier: str,
+        username: str,
+        password: str,
+        full_name: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        clean_identifier = self._normalize_login_identifier(identifier)
+        clean_username = username.strip().lstrip("@").lower()
+        if self.user_repo.get_by_identifier(clean_identifier):
+            raise ValueError("An account with this email or phone already exists.")
+        if self.profile_repo.get_by_username(clean_username):
+            raise ValueError("Username already taken. Choose another handle.")
+
+        is_email = "@" in clean_identifier
+        user = User(
+            phone_number=None if is_email else clean_identifier,
+            email=clean_identifier if is_email else None,
+            password_hash=hash_password(password),
+            is_active=True,
+            is_verified=True,
+        )
+        try:
+            self.db.add(user)
+            self.db.flush()
+            self.db.add(Profile(user_id=user.id, username=clean_username, full_name=full_name.strip()))
+            self.db.commit()
+            self.db.refresh(user)
+        except IntegrityError:
+            self.db.rollback()
+            raise ValueError("Username is already taken. Choose another handle.")
+
+        user = self.user_repo.get_by_id(user.id)
+        access_token, refresh_token, expires_in = self.token_service.create_auth_tokens(
+            user_id=user.id,
+            user_agent=user_agent,
+            ip_address=ip_address,
+        )
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "expires_in": expires_in,
+            "user": user,
+        }
+
+    def login_password_user(
+        self,
+        identifier: str,
+        password: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        user = self._find_login_user(identifier)
+        if not user or not user.is_active or not verify_password(password, user.password_hash):
+            if user and user.is_active:
+                user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+                if user.failed_login_attempts >= 4:
+                    user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+                self.user_repo.update(user)
+                if user.locked_until:
+                    raise LoginLockedError(15 * 60)
+                remaining = max(0, 4 - user.failed_login_attempts)
+                raise ValueError(f"Incorrect password. {remaining} attempt(s) remaining.")
+            raise ValueError("Incorrect username, email, phone, or password.")
+
+        now = datetime.now(timezone.utc)
+        if user.locked_until:
+            locked_until = user.locked_until.replace(tzinfo=timezone.utc) if user.locked_until.tzinfo is None else user.locked_until
+            if locked_until > now:
+                raise LoginLockedError(int((locked_until - now).total_seconds()))
+            user.locked_until = None
+
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        self.user_repo.update(user)
+        access_token, refresh_token, expires_in = self.token_service.create_auth_tokens(
+            user_id=user.id,
+            user_agent=user_agent,
+            ip_address=ip_address,
+        )
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "expires_in": expires_in,
+            "user": user,
+        }
+
+    def request_password_reset(self, identifier: str) -> Dict[str, str]:
+        user = self._find_login_user(identifier)
+        # Keep the response generic so the endpoint cannot enumerate accounts.
+        if user and user.is_active:
+            target = user.email or user.phone_number
+            if target:
+                self.otp_service.send_otp(target)
+        return {"message": "If an account exists, a reset code has been sent."}
+
+    def reset_password(self, identifier: str, otp_code: str, new_password: str) -> Dict[str, str]:
+        user = self._find_login_user(identifier)
+        if not user or not user.is_active:
+            raise ValueError("Invalid reset request.")
+        target = user.email or user.phone_number
+        if not target:
+            raise ValueError("This account cannot use password reset.")
+        self.otp_service.verify_otp(target, otp_code)
+        user.password_hash = hash_password(new_password)
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        self.user_repo.update(user)
+        return {"message": "Password reset successfully. You can log in now."}
 
     def _generate_default_username(self, clean_identifier: str, user_id: str, is_email: bool) -> str:
         """Generate collision-safe and sanitized username."""

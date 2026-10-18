@@ -45,3 +45,13 @@ class UserRepository(BaseRepository[User]):
             .filter(or_(User.phone_number == clean, User.email == clean))
             .first()
         )
+
+    def get_by_username(self, username: str) -> Optional[User]:
+        clean = username.strip().lstrip("@").lower() if username else ""
+        return (
+            self.db.query(User)
+            .options(joinedload(User.profile))
+            .join(User.profile)
+            .filter(User.profile.has(username=clean))
+            .first()
+        )

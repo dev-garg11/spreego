@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config.database import Base, engine
+from src.config.schema import ensure_auth_columns
 from src.config.settings import settings
 import src.models  # Ensures all SQLAlchemy models are registered on Base.metadata
 from src.routes.auth_routes import router as auth_router
@@ -28,6 +29,7 @@ async def lifespan(app: FastAPI):
     # Schema creation is opt-in for local development. Production must use migrations.
     if settings.ENVIRONMENT == "development" and settings.AUTO_CREATE_SCHEMA:
         Base.metadata.create_all(bind=engine)
+    ensure_auth_columns()
     yield
 
 

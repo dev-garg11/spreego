@@ -27,7 +27,7 @@ interface ReelCardProps {
 }
 
 export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSponsored }) => {
-  const { soundMuted, showToast } = useApp();
+  const { soundMuted, showToast, requestAuth } = useApp();
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [claps, setClaps] = useState(spree.claps_count ?? 12400);
@@ -71,6 +71,10 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   };
 
   const handleClap = async (clientX?: number, clientY?: number) => {
+    if (!requestAuth()) {
+      showToast('Log in first to clap on a Spree 🔐');
+      return;
+    }
     if (hasClapped || clapInFlightRef.current) return;
     clapInFlightRef.current = true;
     triggerClapConfetti(clientX, clientY);
@@ -90,6 +94,10 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   };
 
   const handleSave = async () => {
+    if (!requestAuth()) {
+      showToast('Log in first to save a Spree 🔐');
+      return;
+    }
     const nextSaved = !hasSaved;
     setHasSaved(nextSaved);
     try {
@@ -106,6 +114,10 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
   };
 
   const handleFollow = async () => {
+    if (!requestAuth()) {
+      showToast('Log in first to follow creators 🔐');
+      return;
+    }
     const nextState = !isFollowing;
     setIsFollowing(nextState);
     if (!spree.creator?.id) return;
@@ -338,7 +350,13 @@ export const ReelCard: React.FC<ReelCardProps> = ({ spree, isActive, onExploreSp
 
         {/* Comments Drawer Trigger */}
         <button
-          onClick={() => setIsCommentOpen(true)}
+          onClick={() => {
+            if (!requestAuth()) {
+              showToast('Log in first to join the conversation 🔐');
+              return;
+            }
+            setIsCommentOpen(true);
+          }}
           aria-label="Comments"
           className="flex flex-col items-center group active:scale-90 transition-transform"
         >

@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Search, Zap, Volume2, VolumeX, ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { FeedSubTab } from '../../types';
-import { AuthModal } from './AuthModal';
-import { authApi, getAuthToken } from '../../api/client';
+import { authApi } from '../../api/client';
 
 interface TopNavProps {
   activeSubTab?: FeedSubTab;
@@ -21,15 +20,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   onBack,
   customTitle,
 }) => {
-  const { currentTab, soundMuted, toggleSound, setCurrentTab, showToast } = useApp();
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getAuthToken()));
-
-  useEffect(() => {
-    const syncAuthState = () => setIsAuthenticated(Boolean(getAuthToken()));
-    window.addEventListener('spreego-auth-changed', syncAuthState);
-    return () => window.removeEventListener('spreego-auth-changed', syncAuthState);
-  }, []);
+  const { currentTab, soundMuted, toggleSound, setCurrentTab, showToast, isAuthenticated, openAuthModal } = useApp();
 
   const handleNotificationClick = () => setCurrentTab('notifications');
 
@@ -71,7 +62,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             </h1>
           ) : currentTab === 'home' ? (
             <div className="flex items-center space-x-1 bg-spreego-surface/80 p-0.5 rounded-full border border-white/5">
-              {(['for_you', 'following', 'clubs'] as FeedSubTab[]).map((tab) => {
+              {(['for_you', 'following'] as FeedSubTab[]).map((tab) => {
                 const isActive = activeSubTab === tab;
                 const labels: Record<FeedSubTab, string> = {
                   for_you: 'For You',
@@ -118,7 +109,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                   // Tokens are cleared by authApi.logout even if the server is unavailable.
                 }
               } else {
-                setIsAuthOpen(true);
+                openAuthModal();
               }
             }}
             aria-label={isAuthenticated ? 'Log out' : 'Log in'}
@@ -168,11 +159,6 @@ export const TopNav: React.FC<TopNavProps> = ({
         </div>
       </div>
 
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onAuthenticated={() => setIsAuthOpen(false)}
-      />
     </header>
   );
 };

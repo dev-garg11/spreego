@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
 from src.models.user import User
-from src.services.auth_service import AuthService
+from src.services.auth_service import AuthService, LoginLockedError
 from src.validations.auth_schemas import (
     LogoutRequest,
     MessageResponse,
@@ -12,10 +12,74 @@ from src.validations.auth_schemas import (
     TokenResponse,
     UserResponse,
     VerifyOTPRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
 )
 
 
 class AuthController:
+    @staticmethod
+    def register(payload: RegisterRequest, request: Request, db: Session) -> TokenResponse:
+        service = AuthService(db)
+        try:
+            result = service.register_password_user(
+                identifier=payload.identifier,
+                username=payload.username,
+                password=payload.password,
+                full_name=payload.full_name,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+            )
+        except ValueError as err:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
+        return TokenResponse(
+            access_token=result["access_token"],
+            refresh_token=result["refresh_token"],
+            token_type=result["token_type"],
+            expires_in=result["expires_in"],
+            user=UserResponse.from_orm_model(result["user"]),
+        )
+
+    @staticmethod
+    def login(payload: LoginRequest, request: Request, db: Session) -> TokenResponse:
+        service = AuthService(db)
+        try:
+            result = service.login_password_user(
+                identifier=payload.identifier,
+                password=payload.password,
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+            )
+        except LoginLockedError as err:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=str(err),
+                headers={"Retry-After": str(err.retry_after_seconds)},
+            )
+        except ValueError as err:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(err), headers={"WWW-Authenticate": "Bearer"})
+        return TokenResponse(
+            access_token=result["access_token"],
+            refresh_token=result["refresh_token"],
+            token_type=result["token_type"],
+            expires_in=result["expires_in"],
+            user=UserResponse.from_orm_model(result["user"]),
+        )
+
+    @staticmethod
+    def forgot_password(payload: ForgotPasswordRequest, db: Session) -> MessageResponse:
+        result = AuthService(db).request_password_reset(payload.identifier)
+        return MessageResponse(**result)
+
+    @staticmethod
+    def reset_password(payload: ResetPasswordRequest, db: Session) -> MessageResponse:
+        try:
+            result = AuthService(db).reset_password(payload.identifier, payload.otp_code, payload.new_password)
+        except ValueError as err:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
+        return MessageResponse(**result)
     @staticmethod
     def send_otp(payload: SendOTPRequest, db: Session) -> SendOTPResponse:
         """Handle OTP dispatch."""
