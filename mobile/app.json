@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "SPREEGO",
+    "slug": "spreego",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "spreego",
+    "description": "Discover cinematic reels, creator drops, and community opens.",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.spreego.app"
+    },
+    "android": {
+      "package": "com.spreego.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-image-picker", "expo-secure-store"]
+  }
+}
