@@ -4,16 +4,23 @@ import App from '../../App';
 import { feedApi, opensApi, storeApi, walletApi } from '../../api/client';
 
 describe('Milestone M1 — SPREEGO Shell & Taste-Design Foundation', () => {
+  const waitForFeedToSettle = async () => {
+    await waitFor(() => {
+      expect(screen.queryByText(/Finding your next spree/)).not.toBeInTheDocument();
+    });
+  };
+
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
   });
 
-  it('renders brand logo and navigation shell with 5 tabs', () => {
+  it('renders brand logo and navigation shell with 5 tabs', async () => {
     // Set consent so we can observe main shell directly
     localStorage.setItem('spreego_consent_accepted', JSON.stringify({ accepted: true, version: 'v1.0' }));
 
     render(<App />);
+    await waitForFeedToSettle();
 
     // TopNav brand monogram & title
     expect(screen.getByText('SPREEGO')).toBeInTheDocument();
@@ -29,6 +36,7 @@ describe('Milestone M1 — SPREEGO Shell & Taste-Design Foundation', () => {
   it('switches tabs when clicking on BottomNav items', async () => {
     localStorage.setItem('spreego_consent_accepted', JSON.stringify({ accepted: true, version: 'v1.0' }));
     render(<App />);
+    await waitForFeedToSettle();
 
     // Starts on Home (For You tab in TopNav)
     expect(screen.getByText('For You')).toBeInTheDocument();
@@ -54,6 +62,7 @@ describe('Milestone M1 — SPREEGO Shell & Taste-Design Foundation', () => {
   it('opens creation modal bottom sheet when clicking the center Create button', async () => {
     localStorage.setItem('spreego_consent_accepted', JSON.stringify({ accepted: true, version: 'v1.0' }));
     render(<App />);
+    await waitForFeedToSettle();
 
     const createButton = screen.getByRole('button', { name: /create spree/i });
     fireEvent.click(createButton);
@@ -73,6 +82,7 @@ describe('Milestone M1 — SPREEGO Shell & Taste-Design Foundation', () => {
   it('displays R3 Consent Guard Modal on initial visit and persists acceptance', async () => {
     // Empty localStorage -> Consent modal must display
     render(<App />);
+    await waitForFeedToSettle();
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Welcome to SPREEGO')).toBeInTheDocument();
@@ -99,6 +109,7 @@ describe('Milestone M1 — SPREEGO Shell & Taste-Design Foundation', () => {
 
   it('warns user when declining consent in ConsentGuardModal', async () => {
     render(<App />);
+    await waitForFeedToSettle();
 
     const declineBtn = screen.getByRole('button', { name: /decline & limit features/i });
     fireEvent.click(declineBtn);
@@ -107,9 +118,10 @@ describe('Milestone M1 — SPREEGO Shell & Taste-Design Foundation', () => {
     expect(localStorage.getItem('spreego_consent_accepted')).toBeNull();
   });
 
-  it('toggles sound mute state from TopNav', () => {
+  it('toggles sound mute state from TopNav', async () => {
     localStorage.setItem('spreego_consent_accepted', JSON.stringify({ accepted: true, version: 'v1.0' }));
     render(<App />);
+    await waitForFeedToSettle();
 
     const soundBtn = screen.getByRole('button', { name: /mute audio/i });
     fireEvent.click(soundBtn);

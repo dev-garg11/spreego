@@ -25,7 +25,14 @@ export interface CommunityPass {
   is_active: boolean;
 }
 
-export type OrderStatus = 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED';
+export type OrderStatus =
+  | 'CREATED'
+  | 'PAYMENT_PENDING'
+  | 'PAID'
+  | 'PROCESSING'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED';
 
 export interface OrderRecord {
   id: string;

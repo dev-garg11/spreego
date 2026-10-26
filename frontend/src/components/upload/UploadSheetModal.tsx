@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 import { useApp } from '../../context/AppContext';
-import { uploadApi } from '../../api/client';
+import { feedApi, uploadApi } from '../../api/client';
 
 interface UploadSheetModalProps {
   isOpen: boolean;
@@ -28,9 +28,29 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
   const { showToast } = useApp();
   const [, setSelectedMode] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadedMedia, setUploadedMedia] = useState<{
+    media_url: string;
+    content_type: string;
+    original_name: string;
+  } | null>(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleClose = () => {
+    setSelectedMode(null);
+    setIsUploading(false);
+    setIsPublishing(false);
+    setUploadComplete(false);
+    setUploadError(null);
+    setUploadedMedia(null);
+    setTitle('');
+    setDescription('');
+    onClose();
+  };
 
   const creationModes = [
     {
@@ -100,14 +120,14 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
       setIsUploading(true);
       setUploadError(null);
       try {
-        await uploadApi.directUpload(file, purpose);
-        setUploadComplete(true);
-        showToast('Media uploaded successfully. Add a caption to publish it.');
-        setTimeout(() => {
-          setUploadComplete(false);
-          setSelectedMode(null);
-          onClose();
-        }, 900);
+        const result = await uploadApi.directUpload(file, purpose);
+        setUploadedMedia({
+          media_url: result.media_url,
+          content_type: result.content_type,
+          original_name: result.original_name || file.name,
+        });
+        setTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim());
+        showToast('Media uploaded. Add a title and publish your Spree.');
       } catch (error) {
         setUploadError(error instanceof Error ? error.message : 'Upload failed');
       } finally {
@@ -117,12 +137,40 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
     }
   };
 
+  const handlePublish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadedMedia || !title.trim()) {
+      setUploadError('Please add a title before publishing.');
+      return;
+    }
+
+    setIsPublishing(true);
+    setUploadError(null);
+    try {
+      await feedApi.createSpree({
+        type: uploadedMedia.content_type.startsWith('video') ? 'VIDEO_SHORT' : 'PHOTO',
+        title: title.trim(),
+        description: description.trim() || undefined,
+        media_url: uploadedMedia.media_url,
+        thumbnail_url: uploadedMedia.content_type.startsWith('video') ? undefined : uploadedMedia.media_url,
+        visibility: 'PUBLIC',
+      });
+      setUploadComplete(true);
+      showToast('Your Spree is live!');
+      window.setTimeout(handleClose, 900);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Could not publish Spree');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-md">
           {/* Backdrop Dismiss */}
-          <div className="absolute inset-0" onClick={onClose} />
+          <div className="absolute inset-0" onClick={handleClose} />
 
           {/* Modal Container */}
           <motion.div
@@ -139,7 +187,7 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
             <div className="flex items-center justify-between">
               <h3 className="font-display font-bold text-lg text-white">Create New Spree</h3>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 aria-label="Close creation sheet"
                 className="p-1 rounded-full text-spreego-text-secondary hover:text-white hover:bg-spreego-elevated transition-colors"
               >
@@ -171,7 +219,44 @@ export const UploadSheetModal: React.FC<UploadSheetModalProps> = ({ isOpen, onCl
               </div>
             )}
 
-            {!isUploading && !uploadComplete && (
+            {uploadedMedia && !isUploading && !uploadComplete && (
+              <form onSubmit={handlePublish} className="space-y-3 rounded-2xl border border-spreego-violet/30 bg-spreego-elevated p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
+                  {uploadedMedia.content_type.startsWith('video') ? (
+                    <Video className="h-5 w-5 text-spreego-violet-light" />
+                  ) : (
+                    <Image className="h-5 w-5 text-spreego-champagne" />
+                  )}
+                  <span className="min-w-0 truncate text-xs text-slate-200">{uploadedMedia.original_name}</span>
+                </div>
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Spree title"
+                  maxLength={255}
+                  required
+                  className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white focus:border-spreego-violet focus:outline-none"
+                />
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Add a caption (optional)"
+                  maxLength={5000}
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-xs text-white focus:border-spreego-violet focus:outline-none"
+                />
+                <div className="flex gap-2">
+                  <button type="button" onClick={handleClose} className="flex-1 rounded-xl border border-white/10 px-3 py-2.5 text-xs font-semibold text-slate-300">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isPublishing} className="flex-1 rounded-xl bg-spreego-violet px-3 py-2.5 text-xs font-bold text-white disabled:opacity-50">
+                    {isPublishing ? 'Publishing...' : 'Publish Spree'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {!isUploading && !uploadComplete && !uploadedMedia && (
               <>
                 {/* 6-Option Creation Grid */}
                 <div className="grid grid-cols-3 gap-2.5">

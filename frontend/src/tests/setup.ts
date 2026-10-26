@@ -38,6 +38,11 @@ class IntersectionObserverMock {
 }
 window.IntersectionObserver = IntersectionObserverMock as any;
 
+// jsdom does not implement media playback. Mock it so components that
+// autoplay reels do not emit noisy "Not implemented" errors in tests.
+HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
+HTMLMediaElement.prototype.pause = vi.fn();
+
 // Mock canvas-confetti
 vi.mock('canvas-confetti', () => {
   return {

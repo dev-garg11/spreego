@@ -185,6 +185,11 @@ function resolveUrl(path: string): string {
   return `http://localhost:8000${path}`;
 }
 
+function resolveMediaAssetUrl(path: string | undefined): string {
+  if (!path) return '';
+  return path.startsWith('http://') || path.startsWith('https://') ? path : resolveUrl(path);
+}
+
 export class ApiError extends Error {
   status: number;
   detail?: any;
@@ -258,6 +263,119 @@ async function safeFetch<T>(
   }
 }
 
+const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+const DEFAULT_THUMBNAIL = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800';
+
+function normalizeCreator(raw: any, fallbackId = 'usr_creator'): UserProfile {
+  const source = raw?.profile || raw || {};
+  const username = String(
+    source.username || source.handle?.replace(/^@/, '') || `creator_${fallbackId.slice(0, 6)}`,
+  );
+
+  return {
+    id: String(source.id || raw?.id || fallbackId),
+    username,
+    handle: source.handle || `@${username}`,
+    display_name: source.display_name || source.full_name || username,
+    avatar_url: source.avatar_url || DEFAULT_AVATAR,
+    bio: source.bio,
+    is_verified: source.is_verified ?? raw?.is_verified,
+    follower_count: source.follower_count ?? source.followers_count ?? 0,
+    following_count: source.following_count ?? source.following_count ?? 0,
+    post_count: source.post_count ?? source.posts_count ?? 0,
+  };
+}
+
+function normalizeSpreeItem(raw: any): SpreeItem {
+  const metrics = raw?.metrics || {};
+  const creatorId = String(raw?.creator_id || raw?.creator?.id || 'usr_creator');
+  const backendType = raw?.type;
+  const type = backendType === 'VIDEO_LONG' ? 'LONG_VIDEO' : backendType;
+
+  return {
+    ...raw,
+    id: String(raw?.id || ''),
+    creator_id: creatorId,
+    creator: normalizeCreator(raw?.creator, creatorId),
+    title: raw?.title || 'Untitled Spree',
+    caption: raw?.caption ?? raw?.description ?? raw?.title ?? '',
+    media_url: resolveMediaAssetUrl(raw?.media_url),
+    thumbnail_url: resolveMediaAssetUrl(raw?.thumbnail_url || raw?.media_url || DEFAULT_THUMBNAIL),
+    type: type || 'VIDEO_SHORT',
+    duration_seconds: raw?.duration_seconds ?? raw?.duration,
+    tags: Array.isArray(raw?.tags) ? raw.tags : [],
+    views_count: raw?.views_count ?? metrics.views_count ?? 0,
+    claps_count: raw?.claps_count ?? metrics.claps_count ?? raw?.clap_count ?? 0,
+    comments_count: raw?.comments_count ?? metrics.comments_count ?? raw?.comment_count ?? 0,
+    shares_count: raw?.shares_count ?? metrics.shares_count ?? raw?.share_count ?? 0,
+    saves_count: raw?.saves_count ?? metrics.saves_count ?? raw?.save_count ?? 0,
+    created_at: raw?.created_at || new Date(0).toISOString(),
+  };
+}
+
+function normalizeComment(raw: any): CommentItem {
+  const userId = String(raw?.user_id || raw?.user?.id || 'usr_creator');
+  const commentUser = raw?.user || {
+    id: userId,
+    username: raw?.username,
+    full_name: raw?.full_name,
+    avatar_url: raw?.avatar_url,
+  };
+  return {
+    ...raw,
+    id: String(raw?.id || `comment_${Date.now()}`),
+    spree_id: String(raw?.spree_id || ''),
+    user: normalizeCreator(commentUser, userId),
+    text: raw?.text || '',
+    claps_count: raw?.claps_count ?? 0,
+    created_at: raw?.created_at || new Date(0).toISOString(),
+  };
+}
+
+function normalizeOrder(raw: any): OrderRecord {
+  const items = Array.isArray(raw?.items) ? raw.items : [];
+  const firstItem = items[0] || {};
+  const product = firstItem.product || {};
+  const itemCount = items.reduce((total: number, item: any) => total + Number(item?.quantity || 0), 0);
+  const title = product.title || raw?.product_title || (items.length > 1 ? `${items.length} products` : 'Order');
+
+  return {
+    id: String(raw?.id || ''),
+    product_id: String(firstItem.product_id || raw?.product_id || ''),
+    product_title: title,
+    product_image: resolveMediaAssetUrl(product.images?.[0] || raw?.product_image || DEFAULT_THUMBNAIL),
+    price_inr: Number(firstItem.unit_price ?? raw?.price_inr ?? 0),
+    quantity: Number(firstItem.quantity ?? raw?.quantity ?? itemCount ?? 1),
+    total_amount_inr: Number(raw?.total_amount ?? raw?.total_amount_inr ?? 0),
+    status: raw?.status || 'CREATED',
+    created_at: raw?.created_at || new Date(0).toISOString(),
+  };
+}
+
+function normalizeSubscriptionResult(raw: any): { success: boolean; is_active: boolean } {
+  return {
+    success: raw?.success ?? raw?.status === 'ACTIVE',
+    is_active: raw?.is_active ?? raw?.status === 'ACTIVE',
+  };
+}
+
+function normalizePayoutResult(
+  raw: any,
+  amount: number,
+  upiId: string,
+): { success: boolean; transaction_id: string; message: string } {
+  if (raw?.success !== undefined || raw?.transaction_id) {
+    return raw;
+  }
+
+  const transactionId = String(raw?.id || `txn_${Date.now()}`);
+  return {
+    success: true,
+    transaction_id: transactionId,
+    message: `Payout of ₹${amount.toLocaleString()} initiated to ${upiId}`,
+  };
+}
+
 /* =====================================================================
    FEED & SPREE API
 ===================================================================== */
@@ -269,19 +387,7 @@ export const feedApi = {
       mockSprees
     );
 
-    return raw.map((item: any) => ({
-      ...item,
-      creator: item.creator || {
-        id: item.creator_id || 'usr_creator',
-        username: item.creator_username || 'creator',
-        handle: item.creator_username ? `@${item.creator_username}` : `@creator_${(item.creator_id || item.id || 'usr').slice(0, 6)}`,
-        avatar_url: item.creator_avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      },
-      views_count: item.views_count ?? 18400,
-      claps_count: item.claps_count ?? item.clap_count ?? 12400,
-      comments_count: item.comments_count ?? item.comment_count ?? 342,
-      shares_count: item.shares_count ?? item.share_count ?? 189,
-    }));
+    return raw.map(normalizeSpreeItem);
   },
 
   async getExploreItems(
@@ -328,46 +434,58 @@ export const feedApi = {
       items
     );
 
-    return raw.map((item: any) => ({
-      ...item,
-      creator: item.creator || {
-        id: item.creator_id || 'usr_creator',
-        username: 'creator',
-        handle: `@creator_${(item.creator_id || item.id || 'usr').slice(0, 6)}`,
-        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-      },
-      views_count: item.views_count ?? 1420,
-      claps_count: item.claps_count ?? 320,
-      comments_count: item.comments_count ?? 24,
-      shares_count: item.shares_count ?? 12,
-    }));
+    return raw.map(normalizeSpreeItem);
   },
 
   async getSpreeById(id: string): Promise<SpreeItem | null> {
     const fallback = mockExploreItems.find((s) => s.id === id) || mockSprees[0] || null;
-    return safeFetch<SpreeItem | null>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/sprees/${id}`,
       { method: 'GET' },
       fallback
     );
+    return raw ? normalizeSpreeItem(raw) : null;
   },
 
   async getCreatorSprees(creatorId: string): Promise<SpreeItem[]> {
-    return safeFetch<SpreeItem[]>(
+    const raw = await safeFetch<any[]>(
       `${BASE_URL}/sprees?creator_id=${encodeURIComponent(creatorId)}`,
       { method: 'GET' },
       mockExploreItems.filter((item) => item.creator_id === creatorId)
     );
+    return raw.map(normalizeSpreeItem);
+  },
+
+  async createSpree(payload: {
+    type: 'VIDEO_SHORT' | 'VIDEO_LONG' | 'PHOTO' | 'SERIES';
+    title: string;
+    description?: string;
+    media_url: string;
+    thumbnail_url?: string;
+    duration?: number;
+    visibility?: 'PUBLIC' | 'FOLLOWERS_ONLY' | 'PRIVATE';
+    category?: string;
+    tags?: string[];
+  }): Promise<SpreeItem> {
+    const raw = await apiFetch<any>(`${BASE_URL}/sprees`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return normalizeSpreeItem(raw);
   },
 
   async clapSpree(id: string): Promise<{ success: boolean; newCount: number }> {
     const item = mockSprees.find((s) => s.id === id);
     const count = item ? item.claps_count + 1 : 12401;
-    return safeFetch<{ success: boolean; newCount: number }>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/sprees/${id}/clap`,
       { method: 'POST' },
       { success: true, newCount: count }
     );
+    return {
+      success: raw?.success ?? raw?.clapped ?? true,
+      newCount: raw?.newCount ?? raw?.new_count ?? count,
+    };
   },
 
   async saveSpree(id: string): Promise<{ success: boolean; saved: boolean }> {
@@ -386,11 +504,15 @@ export const feedApi = {
   },
 
   async shareSpree(id: string, platform: string = 'web'): Promise<{ success: boolean; shareUrl: string }> {
-    return safeFetch<{ success: boolean; shareUrl: string }>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/sprees/${id}/share`,
       { method: 'POST', body: JSON.stringify({ platform }) },
       { success: true, shareUrl: `https://spreego.app/s/${id}` }
     );
+    return {
+      success: raw?.success ?? true,
+      shareUrl: raw?.shareUrl || raw?.share_url || `https://spreego.app/s/${id}`,
+    };
   },
 
   async getComments(spreeId: string): Promise<CommentItem[]> {
@@ -422,11 +544,12 @@ export const feedApi = {
       },
     ];
 
-    return safeFetch<CommentItem[]>(
+    const raw = await safeFetch<any[]>(
       `${BASE_URL}/sprees/${spreeId}/comments`,
       { method: 'GET' },
       fallback
     );
+    return raw.map(normalizeComment);
   },
 
   async addComment(spreeId: string, text: string): Promise<CommentItem> {
@@ -439,18 +562,19 @@ export const feedApi = {
       created_at: new Date().toISOString(),
     };
 
-    return safeFetch<CommentItem>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/sprees/${spreeId}/comments`,
       { method: 'POST', body: JSON.stringify({ text }) },
       fallback
     );
+    return normalizeComment(raw);
   },
 
   async sendViewTelemetry(
     payload: ViewTelemetryPayload & { spree_id: string },
     requestOptions: Pick<RequestInit, 'keepalive'> = {}
   ): Promise<{ success: boolean }> {
-    return safeFetch<{ success: boolean }>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/sprees/${payload.spree_id}/view`,
       {
         method: 'POST',
@@ -463,6 +587,7 @@ export const feedApi = {
       },
       { success: true }
     );
+    return { success: raw?.success ?? true };
   },
 };
 
@@ -582,9 +707,10 @@ export const opensApi = {
 
     const qs = q.toString() ? `?${q.toString()}` : '';
     try {
-      return await apiFetch<SpreeItem[]>(`${BASE_URL}/opens/${openId}/feed${qs}`, {
+      const items = await apiFetch<any[]>(`${BASE_URL}/opens/${openId}/feed${qs}`, {
         method: 'GET',
       });
+      return items.map(normalizeSpreeItem);
     } catch (err) {
       const apiErr = err as ApiError;
       if (OFFLINE_FALLBACKS_ENABLED && (apiErr.status === 0 || apiErr.status >= 500)) {
@@ -602,6 +728,7 @@ export const opensApi = {
       // Normalize any nested creator/spree fields for display
       return items.map((item) => ({
         ...item,
+        spree: item.spree ? normalizeSpreeItem(item.spree) : item.spree,
         username: item.creator?.full_name || item.creator?.username || item.username || item.user_id,
         handle: item.creator?.username ? `@${item.creator.username}` : item.handle || `@user_${item.user_id.slice(0, 6)}`,
         avatar: item.creator?.avatar_url || item.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
@@ -665,7 +792,7 @@ export const storeApi = {
       items
     );
 
-    return rawItems.map((p: any) => ({
+    const normalizedItems = rawItems.map((p: any) => ({
       id: p.id,
       creator_id: p.creator_id || 'usr_creator_001',
       title: p.title,
@@ -679,6 +806,10 @@ export const storeApi = {
       sales_count: p.sales_count ?? 128,
       badge: p.badge,
     }));
+
+    return category === 'digital'
+      ? normalizedItems.filter((product) => product.is_digital)
+      : normalizedItems;
   },
 
   async getCommunityPass(): Promise<CommunityPass> {
@@ -693,8 +824,8 @@ export const storeApi = {
         id: plan.id || mockCommunityPass.id,
         creator_id: plan.creator_id || mockCommunityPass.creator_id,
         title: plan.name || plan.title || mockCommunityPass.title,
-        price_inr: plan.price ?? mockCommunityPass.price_inr,
-        interval: plan.billing_period || plan.interval || mockCommunityPass.interval,
+        price_inr: plan.price ?? plan.monthly_price ?? mockCommunityPass.price_inr,
+        interval: plan.billing_period || plan.interval || 'month',
         description: plan.description || mockCommunityPass.description,
         benefits: plan.perks || plan.benefits || mockCommunityPass.benefits,
         is_active: plan.is_active ?? true,
@@ -704,19 +835,21 @@ export const storeApi = {
   },
 
   async subscribeCommunityPass(planId: string = 'pass_free_community'): Promise<{ success: boolean; is_active: boolean }> {
-    return safeFetch<{ success: boolean; is_active: boolean }>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/memberships/subscribe`,
       { method: 'POST', body: JSON.stringify({ plan_id: planId }) },
       { success: true, is_active: true }
     );
+    return normalizeSubscriptionResult(raw);
   },
 
   async getOrders(): Promise<OrderRecord[]> {
-    return safeFetch<OrderRecord[]>(
+    const raw = await safeFetch<any[]>(
       `${BASE_URL}/orders/my`,
       { method: 'GET' },
       mockOrders
     );
+    return raw.map(normalizeOrder);
   },
 
   async placeOrder(productId: string, quantity: number = 1): Promise<OrderRecord> {
@@ -733,7 +866,7 @@ export const storeApi = {
       created_at: new Date().toISOString(),
     };
 
-    return safeFetch<OrderRecord>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/orders`,
       {
         method: 'POST',
@@ -743,6 +876,7 @@ export const storeApi = {
       },
       fallback
     );
+    return normalizeOrder(raw);
   },
 };
 
@@ -789,7 +923,7 @@ export const walletApi = {
   },
 
   async requestPayout(amount: number, upiId: string): Promise<{ success: boolean; transaction_id: string; message: string }> {
-    return safeFetch<{ success: boolean; transaction_id: string; message: string }>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/wallet/payout`,
       {
         method: 'POST',
@@ -804,6 +938,7 @@ export const walletApi = {
         message: `Payout of ₹${amount.toLocaleString()} initiated to ${upiId}`,
       }
     );
+    return normalizePayoutResult(raw, amount, upiId);
   },
 };
 
@@ -837,26 +972,29 @@ export const userApi = {
   },
 
   async getUserById(id: string): Promise<UserProfile> {
-    return safeFetch<UserProfile>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/users/${id}`,
       { method: 'GET' },
       mockCurrentUser
     );
+    return normalizeCreator(raw, id);
   },
 
   async followUser(id: string): Promise<{ success: boolean; message: string }> {
-    return safeFetch<{ success: boolean; message: string }>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/users/${id}/follow`,
       { method: 'POST' },
       { success: true, message: 'Followed creator successfully' }
     );
+    return { success: raw?.success ?? true, message: raw?.message || 'Followed creator successfully' };
   },
 
   async unfollowUser(id: string): Promise<{ success: boolean; message: string }> {
-    return apiFetch<{ success: boolean; message: string }>(
+    const raw = await apiFetch<any>(
       `${BASE_URL}/users/${id}/follow`,
       { method: 'DELETE' }
     );
+    return { success: raw?.success ?? true, message: raw?.message || 'Unfollowed creator successfully' };
   },
 
   async updateCurrentUser(payload: {
@@ -911,11 +1049,12 @@ export const notificationApi = {
   },
 
   async markAllAsRead(): Promise<{ success: boolean }> {
-    return safeFetch<{ success: boolean }>(
+    const raw = await safeFetch<any>(
       `${BASE_URL}/notifications/read-all`,
       { method: 'POST' },
       { success: true }
     );
+    return { success: raw?.success ?? true };
   },
 };
 
