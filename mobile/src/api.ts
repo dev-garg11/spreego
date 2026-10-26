@@ -56,14 +56,14 @@ export function mediaUrl(value?: string | null) {
 }
 
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = setTimeout(() => controller?.abort(), 8000);
   try {
     const response = await fetch(`${API_ORIGIN}${path}`, {
       ...options,
-      signal: controller.signal,
+      ...(controller ? { signal: controller.signal } : {}),
       headers: {
-        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(typeof FormData !== 'undefined' && options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },

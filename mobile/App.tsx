@@ -44,7 +44,32 @@ const colors = {
   red: '#FB7185',
 };
 
-export default function App() {
+class RuntimeErrorBoundary extends React.Component<React.PropsWithChildren, { error: string | null }> {
+  state: { error: string | null } = { error: null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <SafeAreaView style={styles.safeArea}>
+          <StatusBar style="light" />
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorEmoji}>!</Text>
+            <Text style={styles.errorTitle}>SPREEGO could not load</Text>
+            <Text style={styles.errorMessage}>{this.state.error}</Text>
+            <Text style={styles.errorHint}>Restart Expo with: npx expo start --lan --clear</Text>
+          </View>
+        </SafeAreaView>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function SpreegoApp() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [feed, setFeed] = useState<FeedItem[]>(DEMO_FEED);
   const [opens, setOpens] = useState<OpenItem[]>([]);
@@ -360,9 +385,22 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 80 },
   emptyEmoji: { color: colors.gold, fontSize: 35 },
   emptyText: { color: colors.muted, marginTop: 12 },
+  errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
+  errorEmoji: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.red, color: '#fff', fontSize: 30, fontWeight: '900', textAlign: 'center', lineHeight: 46, marginBottom: 18 },
+  errorTitle: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  errorMessage: { color: colors.red, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 12 },
+  errorHint: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 18 },
   modalBackdrop: { flex: 1, backgroundColor: '#000000AA', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: 34, borderWidth: 1, borderColor: colors.border, gap: 12 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   closeText: { color: colors.muted, fontSize: 30, fontWeight: '300' },
   input: { backgroundColor: colors.elevated, borderWidth: 1, borderColor: colors.border, borderRadius: 13, height: 48, paddingHorizontal: 14, color: colors.text, fontSize: 14 },
 });
+
+export default function App() {
+  return (
+    <RuntimeErrorBoundary>
+      <SpreegoApp />
+    </RuntimeErrorBoundary>
+  );
+}
